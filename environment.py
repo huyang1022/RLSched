@@ -2,6 +2,7 @@ import numpy as np
 
 from parameter import Parameter
 from element import Machine, Job, Action
+import act_generator
 
 class Environment(object):
     def __init__(self, pa):
@@ -16,9 +17,14 @@ class Environment(object):
         self.running_jobs = []  # set of running jobs
         self.finished_jobs = [] # set of finished jobs
 
+        self.batch_id = 0       # ID of batch
+        self.job_gen = None     # job generator
+        self.job_gen_idx = 0    # index of job_gen
+        self.mac_gen = None     # mac generator
 
         self.time_file = open("log/%s" % (pa.agent), "w")   #file to record the logs
         self.job_file = open("data/%s" % (pa.agent), "w")  # file to record the logs
+
 
     def reset(self):
         self.current_time = -1
@@ -28,6 +34,8 @@ class Environment(object):
         self.job_count = 0
         self.running_jobs = []
         self.finished_jobs = []
+        self.batch_id = 0
+        self.job_gen_idx = 0
 
     def add_machine(self, mac):
         # type: (Machine) -> None
@@ -35,6 +43,9 @@ class Environment(object):
         self.mac_count += 1
         assert self.mac_count <= self.pa.mac_num
 
+    def add_cluster(self):
+        for i in self.mac_gen.mac_sequence:
+            self.add_machine(i)
 
     def add_job(self, job):
         # type: (Job) -> None
@@ -70,15 +81,17 @@ class Environment(object):
         self.running_jobs[-1].start(self.current_time)
 
     def obs(self):
-        ret_list = []
+        ret = np.array([], dtype='int64')
         for mac in self.macs:
-            ret_list.append(mac.state)
+            ret = np.append(ret, mac.state)
         for job in self.jobs:
-            ret_list.append(job.state)
+            ret = np.append(ret, job.state)
         for i in xrange(self.pa.job_queue_num - self.job_count):
-            ret_list.append(np.zeros([self.pa.res_num, self.pa.res_slot]))
-        return np.concatenate(ret_list)
+            ret = np.append(ret, np.zeros([self.pa.res_num, self.pa.res_slot]))
+        return ret
 
+    def reward(self):
+        return -self.job_count * 1.0 / self.pa.job_queue_num
 
     def step(self): #act = [job_x, mac_y]  allocate job x to machine y
         # type: (Environment) -> None
@@ -105,6 +118,37 @@ class Environment(object):
             return "Pending"
         return "Idle"
 
+    def step_act(self, act_id):
+        act = act_generator.run(self, act_id)
+        self.step()
+        if act is not None:
+            self.take_act(act)
+            self.pop_job(act.job_id)
+            ret_reward = self.reward()
+        elif act_id == 4:
+            ret_reward = self.reward()
+        else:
+            ret_reward = -2
+
+        ret_info = self.job_count
+
+        job = self.job_gen.job_sequence[self.batch_id][self.job_gen_idx]
+        while (job is not None and
+               job.submission_time <= self.current_time
+            ):
+            if (job.submission_time == self.current_time):  # add job to environment
+                self.add_job(job)
+            self.job_gen_idx += 1
+            job = self.job_gen.job_sequence[self.batch_id][self.job_gen_idx]
+        ret_state = self.obs()
+
+        if (job is None) and self.status() == "Idle":
+            ret_done = True
+        else:
+            ret_done = False
+
+        return ret_state, ret_reward, ret_done, ret_info
+
     def get_usage(self, res_id):
         res_used = 0
         res_total = 0
@@ -112,8 +156,6 @@ class Environment(object):
             res_total += (i.state[res_id] >= 0).sum()
             res_used += (i.state[res_id] > 0).sum()
         return res_used * 1.0 / res_total
-
-
 
     def time_log(self):
         running_num = len(self.running_jobs)

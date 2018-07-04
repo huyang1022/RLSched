@@ -21,10 +21,9 @@ def run(agent):
 
     for i in mac_gen.mac_sequence:
         env.add_machine(i)
-
+    batch_id = 0
     job_idx = 0
     current_time = 0
-
 
 
 
@@ -34,12 +33,12 @@ def run(agent):
         env.step()
         env.time_log()
 
-        while ( env.job_count < pa.job_queue_num and
-                job_gen.job_sequence[job_idx] is not None and
-                job_gen.job_sequence[job_idx].submission_time <= current_time
-        ):
-            if (job_gen.job_sequence[job_idx].submission_time == current_time):   #  add job to environment
-                env.add_job(job_gen.job_sequence[job_idx])
+        # while ( env.job_count < pa.job_queue_num and
+        while  (job_gen.job_sequence[batch_id][job_idx] is not None and
+                job_gen.job_sequence[batch_id][job_idx].submission_time <= current_time
+            ):
+            if (job_gen.job_sequence[batch_id][job_idx].submission_time == current_time):   #  add job to environment
+                env.add_job(job_gen.job_sequence[batch_id][job_idx])
             job_idx += 1
 
         if agent == "ecs":
@@ -55,7 +54,7 @@ def run(agent):
         elif agent == "swarm":
             swarm_agent.schedule(env)
 
-        if job_gen.job_sequence[job_idx] is None:
+        if job_gen.job_sequence[batch_id][job_idx] is None:
             if env.status() == "Idle": # finish all jobs
                 break
         current_time += 1

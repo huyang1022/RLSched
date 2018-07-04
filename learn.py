@@ -3,173 +3,106 @@ from parameter import Parameter
 from mac_generator import MacGenerator
 from job_generator import JobGenerator
 from element import Machine, Job
-from agent import ecs_agent, ecs_dp_agent, ecs_ml_agent, swarm_agent, pack_agent, k8s_agent
 import plot
 import tensorflow as tf
 import numpy as np
 from actor_critic import Actor, Critic
+import os
 
-def run(agent):
-
-    Machine.reset()
-    Job.reset()
-
-    pa = Parameter()
-    pa.agent = agent
-    env = Environment(pa)
-
-    mac_gen = MacGenerator(pa)
-    job_gen = JobGenerator(pa)
-
-
-    for i in mac_gen.mac_sequence:
-        env.add_machine(i)
-
-    job_idx = 0
-    current_time = 0
-
-
-
-
-    while True:
-
-
-        env.step()
-        env.time_log()
-
-        while ( env.job_count < pa.job_queue_num and
-                job_gen.job_sequence[job_idx] is not None and
-                job_gen.job_sequence[job_idx].submission_time <= current_time
-        ):
-            if (job_gen.job_sequence[job_idx].submission_time == current_time):   #  add job to environment
-                env.add_job(job_gen.job_sequence[job_idx])
-            job_idx += 1
-
-        if agent == "ecs":
-            ecs_agent.schedule(env)
-        elif agent =="k8s":
-            k8s_agent.schedule(env)
-        elif agent == "pack":
-            pack_agent.schedule(env)
-        elif agent == "ecs_dp":
-            ecs_dp_agent.schedule(env)
-        elif agent == "ecs_ml":
-            ecs_ml_agent.schedule(env)
-        elif agent == "swarm":
-            swarm_agent.schedule(env)
-
-        if job_gen.job_sequence[job_idx] is None:
-            if env.status() == "Idle": # finish all jobs
-                break
-        current_time += 1
-
-    env.job_log()
-    env.finish()
-
-def main():
-    run("ecs_dp")
-    run("ecs_ml")
-    run("k8s")
-    run("swarm")
-    plot.run()
-    # run("pack")
-
+LOG_DIR = "./log"
+LOG_FILE = "log_rl"
+MODEL_DIR = "./model"
 
 if __name__ == '__main__':
     sess = tf.Session()
     pa = Parameter()
-
     actor = Actor(sess, pa)
     critic = Critic(sess, pa)
     sess.run(tf.global_variables_initializer())
-    tf.summary.FileWriter("./log", sess.graph)
+
+    writer = tf.summary.FileWriter(LOG_DIR, sess.graph)
+    saver = tf.train.Saver()
+    logger = open(LOG_FILE, "w")  # file to record the logs
+
+    if not os.path.exists(MODEL_DIR):
+        os.mkdir(MODEL_DIR)
 
     Machine.reset()
     Job.reset()
     env = Environment(pa)
     mac_gen = MacGenerator(pa)
     job_gen = JobGenerator(pa)
+    env.job_gen = job_gen
+    env.mac_gen = mac_gen
 
 
+    for i in xrange(pa.exp_epochs):
+        ep_s, ep_a, ep_r, ep_v, ep_w = [], [], [], [], []
+        print "================", "Start EP", i, "================"
+        for j in xrange(pa.batch_num):
+            env.reset()
+            env.add_cluster()
+            env.batch_id = j
 
-    exp_n = 0
+            buffer_s, buffer_a, buffer_r, buffer_v, butter_w = [], [], [], [], []
+            td_sum = 0.0
+            td_num = 0.0
+            while True:
+                state = env.obs()
+                act_id = actor.predict(state[np.newaxis, :])
+                state_, reward, done, info = env.step_act(act_id)
 
-    while exp_n < pa.exp_num:
-        exp_n += 1
+                buffer_s.append(state)
+                buffer_a.append(act_id)
+                buffer_r.append(reward)
+                butter_w.append(info)
 
-        env.reset()
-        for i in mac_gen.mac_sequence:
-            env.add_machine(i)
+                if done or env.current_time > pa.exp_len:
 
-        job_idx = 0
-        current_time = 0
+                    value = 0
+                    for r in buffer_r[::-1]:
+                        value = r + pa.discount_rate * value
+                        buffer_v.append(value)
+                    buffer_v.reverse()
 
-        ep_r = 0
-        buffer_s, buffer_a, buffer_r, buffer_v = [], [], [], []
-        while True:
-            env.step()
-            state = env.obs()
-            act_num = actor.choose_action(state[np.newaxis, :])
-
-            while (env.job_count < pa.job_queue_num and
-                   job_gen.job_sequence[job_idx] is not None and
-                   job_gen.job_sequence[job_idx].submission_time <= current_time
-            ):
-                if (job_gen.job_sequence[job_idx].submission_time == current_time):  # add job to environment
-                    env.add_job(job_gen.job_sequence[job_idx])
-                job_idx += 1
-
-            if job_gen.job_sequence[job_idx] is None:
-                if env.status() == "Idle":  # finish all jobs
+                    buffer_s, buffer_a,  buffer_v = np.vstack(buffer_s), np.vstack(buffer_a), np.vstack(buffer_v)
                     break
-            current_time += 1
+
+            ep_s.append(buffer_s)
+            ep_a.append(buffer_a)
+            ep_v.append(buffer_v)
+            ep_r.extend(buffer_r)
+            ep_w.extend(butter_w)
+
+        print "================", "Train EP", i, "================"
+        for j in xrange(pa.batch_num):
+            td_error = critic.learn(ep_s[j], ep_v[j])
+            actor.learn(ep_s[j], ep_v[j], td_error)
+            td_sum += np.sum(td_error)
+            td_num += np.size(td_error)
+
+
+        print \
+            "EP:", i, "\n", \
+            "Batch Number:", pa.batch_num, "\n", \
+            "EP_mean_reward: ", np.mean(ep_r), "\n", \
+            "EP_max_reward: ", np.max(ep_r), "\n", \
+            "EP_avg_reward: ", np.sum(ep_r) / pa.batch_num, "\n", \
+            "EP_avg_td_error: ", td_sum / td_num, "\n", \
+            "EP_avg_duration: ", (np.sum(ep_w) + job_gen.total_len) * 1.0 / pa.job_num / pa.batch_num, "\n"
+
+        logger.write("EP: %d\n" % i)
+        logger.write("Batch Number: %d\n" % pa.batch_num)
+        logger.write("EP_mean_reward: %f\n" % np.mean(ep_r))
+        logger.write("EP_max_reward: %f\n" % np.max(ep_r))
+        logger.write("EP_avg_reward: %f\n" % (np.sum(ep_r) / pa.batch_num))
+        logger.write("EP_avg_td_error: %f\n" % (td_sum / td_num))
+        logger.write("EP_avg_duration: %f\n\n" % ((np.sum(ep_w) + job_gen.total_len) * 1.0 / pa.job_num / pa.batch_num))
+        logger.flush()
+
+
+        if i % pa.save_step == 0:
+            saver.save(sess, "%s/%d.ckpt" % (MODEL_DIR, i))
 
 
 
-    r_list = []
-    for i in xrange(500):
-        s = env.reset()
-
-
-        ep_r = 0
-        total_step = 1
-        buffer_s, buffer_a, buffer_r,  buffer_v = [], [], [], []
-        while True:
-            a = actor.choose_action(s[np.newaxis, :])
-            s_, r, done, info = env.step(a)
-            if done: r = -5
-            ep_r += r
-            buffer_s.append(s)
-            buffer_a.append(a)
-            buffer_r.append(r)
-
-            if total_step % 10 == 0 or done:  # update global and assign to local net
-                if done:
-                    v_s_ = 0  # terminal
-                else:
-                    v_s_ = critic.get_value(s_[np.newaxis, :])
-
-                for r in buffer_r[::-1]:
-                    v_s_ = r + GAMMA * v_s_
-                    buffer_v.append(v_s_)
-                buffer_v.reverse()
-
-                buffer_s, buffer_a, buffer_v = np.vstack(buffer_s), np.vstack(buffer_a), np.vstack(buffer_v)
-                butter_td = critic.learn(buffer_s, buffer_v)
-                actor.learn(buffer_s, buffer_a, butter_td)
-                buffer_s, buffer_a, buffer_r, buffer_v = [], [], [], []
-
-            s = s_
-            total_step += 1
-
-            if done:
-                if len(r_list) == 0:  # record running episode reward
-                    r_list.append(ep_r)
-                else:
-                    r_list.append(0.99 * r_list[-1] + 0.01 * ep_r)
-                print(
-                    "Ep:", i,
-                    "| Ep_r: %i" % r_list[-1],
-                    "| Ep_r: %i" % ep_r,
-                )
-                break

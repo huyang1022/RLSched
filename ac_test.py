@@ -11,6 +11,7 @@ N_A = env.action_space.n
 L_R = 0.001
 GAMMA = 0.9
 LOG_DIR = './log'
+EPS = 1e-6
 
 class Actor(object):
     def __init__(self, sess):
@@ -22,16 +23,17 @@ class Actor(object):
                 self.td_error = tf.placeholder(tf.float32, [None, 1], name = "td_error")
 
             with tf.variable_scope("Net"):
-                l1 = tf.layers.dense(self.state, 200, name = "hidden_layer1")
+                l1 = tf.layers.dense(self.state, 200, tf.nn.relu , name = "hidden_layer1")
                 out = tf.layers.dense(l1, N_A, tf.nn.softmax, name = "act_prob")
 
                 self.act_prob = out
                 self.parameters = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope = "Actor/Net")
 
             with tf.variable_scope("Loss"):
-                log_prob = tf.multiply(tf.log(self.act_prob), tf.squeeze(tf.one_hot(self.act, N_A)))
-                sum_prob  = tf.reduce_sum(log_prob, axis=1, keepdims=True) * self.td_error
-                self.loss = -sum_prob
+                log_prob = tf.multiply(tf.log(self.act_prob + EPS), tf.squeeze(tf.one_hot(self.act, N_A)))
+                sum_prob  = tf.reduce_sum(tf.multiply(tf.reduce_sum(log_prob, axis=1, keepdims=True), - self.td_error))
+                entropy = tf.reduce_sum(tf.multiply(self.act_prob, tf.log(self.act_prob + EPS)))
+                self.loss = sum_prob + L_R * entropy
 
             with tf.variable_scope('Train'):
                 self.gradients = tf.gradients(self.loss, self.parameters)
@@ -64,7 +66,7 @@ class Critic(object):
                 self.value = tf.placeholder(tf.float32, [None, 1], name = "value")
 
             with tf.variable_scope("Net"):
-                l1 = tf.layers.dense(self.state, 200, name = "hidden_layer1")
+                l1 = tf.layers.dense(self.state, 200, tf.nn.relu, name = "hidden_layer1")
                 out = tf.layers.dense(l1, 1,  name = "value")
 
                 self.value_eval = out
@@ -102,8 +104,8 @@ if __name__ == '__main__':
     actor = Actor(sess)
     critic = Critic(sess)
     sess.run(tf.global_variables_initializer())
-    if os.path.exists(LOG_DIR):
-        shutil.rmtree(LOG_DIR)
+    # if os.path.exists(LOG_DIR):
+        # shutil.rmtree(LOG_DIR)
     tf.summary.FileWriter(LOG_DIR, sess.graph)
 
     r_list = []
@@ -115,6 +117,7 @@ if __name__ == '__main__':
         total_step = 1
         buffer_s, buffer_a, buffer_r,  buffer_v = [], [], [], []
         while True:
+            # env.render()
             a = actor.choose_action(s[np.newaxis, :])
             s_, r, done, info = env.step(a)
             if done: r = -5

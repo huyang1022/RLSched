@@ -22,6 +22,7 @@ def read_log(agent):
     pend_cpu = 0.0
     pend_mem = 0.0
     max_pend = 0
+    sum_pend = 0
 
     while True:
         line = in_file.readline()
@@ -35,13 +36,14 @@ def read_log(agent):
             mem_usage += mem
             if int(line[5]) > 0:
                 max_pend = max(max_pend, int(line[5]))
+                sum_pend += int(line[5])
                 pend_num += 1
                 pend_cpu += cpu
                 pend_mem += mem
 
     print "Agent: %s,  Cpu: %f,  Mem: %f" % (agent, cpu_usage/num, mem_usage/num)
     if pend_num>0:
-        print "Agent: %s,  Pend Cpu: %f,  Pend Mem: %f,  Max num: %d" % (agent, pend_cpu/pend_num, pend_mem/pend_num, max_pend)
+        print "Agent: %s,  Pend Cpu: %f,  Pend Mem: %f,  Max: %d, Sum: %d" % (agent, pend_cpu/pend_num, pend_mem/pend_num, max_pend, sum_pend)
 
 def cmp_agent(agent1, agent2):
     l = list()

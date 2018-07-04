@@ -56,7 +56,7 @@ def run(env):
     maxflow = 0
 
     mac_num = env.mac_count
-    job_num = min(env.job_count, env.pa.job_process_num)
+    job_num = min(env.job_count, env.pa.ecs_process_num)
     source = 0
     sink = mac_num + job_num + 1
 
@@ -129,7 +129,7 @@ def run(env):
 
 def schedule(env):
     # type: (Environment) -> None
-    for i in xrange(env.pa.ecs_num):
+    for i in xrange(env.pa.ecs_sched_num):
         if not run(env): break
 
 
