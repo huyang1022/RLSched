@@ -29,7 +29,7 @@ class Parameter(object):
         self.ecs_process_num = 100                       # number of jobs that can be processed in ecs scheduler
         self.agent = "none"
 
-        self.alg_num = 5                                # number of candidate algorithms
+        self.alg_num = 4                                # number of candidate algorithms
         self.learn_rate = 0.001                         # learning rate
         self.discount_rate = 1.0                         # discount rate
         self.learn_step = 100                            # steps of update

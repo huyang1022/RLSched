@@ -31,8 +31,8 @@ class Actor(object):
 
             with tf.variable_scope("Loss"):
                 log_prob = tf.multiply(tf.log(self.act_prob + self.pa.eps), tf.squeeze(tf.one_hot(self.act, self.a_dim)))
-                sum_prob  = tf.reduce_sum(tf.multiply(tf.reduce_sum(log_prob, axis=1, keepdims=True), - self.td_error))
-                entropy = tf.reduce_sum(tf.multiply(self.act_prob, tf.log(self.act_prob + self.pa.eps)))
+                sum_prob = - tf.reduce_sum(tf.multiply(tf.reduce_sum(log_prob, axis=1, keepdims=True), self.td_error))
+                entropy =  tf.reduce_sum(tf.multiply(self.act_prob, tf.log(self.act_prob + self.pa.eps)))
                 self.loss = sum_prob + self.pa.entropy_rate * entropy
 
             with tf.variable_scope('Train'):

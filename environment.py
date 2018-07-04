@@ -124,12 +124,8 @@ class Environment(object):
         if act is not None:
             self.take_act(act)
             self.pop_job(act.job_id)
-            ret_reward = self.reward()
-        elif act_id == 4:
-            ret_reward = self.reward()
-        else:
-            ret_reward = -2
 
+        ret_reward = self.reward()
         ret_info = self.job_count
 
         job = self.job_gen.job_sequence[self.batch_id][self.job_gen_idx]
