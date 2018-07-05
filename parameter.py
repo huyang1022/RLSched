@@ -6,7 +6,7 @@ class Parameter(object):
         self.exp_len = 1000                             # maximum duration of one experiment
 
         self.batch_len = 200                            # maximum duration of one batch
-        self.batch_num = 10                            # number of jobs in one batch
+        self.batch_num = 1                            # number of jobs in one batch
 
         self.res_num = 2                                # number of resources in the cluster
         self.res_slot = 10                            # maximum number of resource slots
