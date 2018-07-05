@@ -30,7 +30,7 @@ class Parameter(object):
         self.agent = "none"
 
         self.alg_num = 4                                # number of candidate algorithms
-        self.learn_rate = 0.001                         # learning rate
+        self.learn_rate = 0.0001                         # learning rate
         self.discount_rate = 1.0                         # discount rate
         self.learn_step = 100                            # steps of update
         self.eps = 1e-10                                 # eps

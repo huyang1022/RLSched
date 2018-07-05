@@ -21,10 +21,9 @@ class Actor(object):
                 self.td_error = tf.placeholder(tf.float32, [None, 1], name = "td_error")
 
             with tf.variable_scope("Net"):
-                l1 = tf.layers.dense(self.state, self.t_num * 4, tf.nn.relu, name = "hidden_layer1")
-                l2 = tf.layers.dense(l1, self.t_num * 2, tf.nn.relu, name = "hidden_layer2")
-                l3 = tf.layers.dense(l2, self.t_num, tf.nn.relu, name = "hidden_layer3")
-                out = tf.layers.dense(l3, self.a_dim, tf.nn.softmax, name = "act_prob")
+                l1 = tf.layers.dense(self.state, self.t_num * 8, tf.nn.relu6, name = "hidden_layer1")
+                l2 = tf.layers.dense(l1, self.t_num * 4, tf.nn.relu6, name = "hidden_layer2")
+                out = tf.layers.dense(l2, self.a_dim, tf.nn.softmax, name = "act_prob")
 
                 self.act_prob = out
                 self.parameters = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope = "Actor/Net")
@@ -55,6 +54,8 @@ class Actor(object):
             self.state: state
         }
         ret_prob = self.sess.run(self.act_prob, feed_dict)
+        # ret_cumsum = np.cumsum(ret_prob)
+        # ret_act = (ret_cumsum > np.random.randint(1, 1000) / float(1000)).argmax()
         ret_act = np.random.choice(np.arange(self.a_dim), p=ret_prob.ravel())
         return ret_act
 
@@ -72,10 +73,9 @@ class Critic(object):
                 self.value_target = tf.placeholder(tf.float32, [None, 1], name = "value")
 
             with tf.variable_scope("Net"):
-                l1 = tf.layers.dense(self.state, self.t_num * 4, tf.nn.relu, name = "hidden_layer1")
-                l2 = tf.layers.dense(l1, self.t_num * 2, tf.nn.relu, name = "hidden_layer2")
-                l3 = tf.layers.dense(l2, self.t_num, tf.nn.relu, name = "hidden_layer3")
-                out = tf.layers.dense(l3, 1,  name = "value")
+                l1 = tf.layers.dense(self.state, self.t_num * 8, tf.nn.relu6, name = "hidden_layer1")
+                l2 = tf.layers.dense(l1, self.t_num * 4, tf.nn.relu6, name = "hidden_layer2")
+                out = tf.layers.dense(l2, 1,  name = "value")
 
                 self.value = out
                 self.parameters = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope = "Critic/Net")
@@ -95,8 +95,8 @@ class Critic(object):
             self.state: state,
             self.value_target: value
         }
-        ret_td , _ = self.sess.run([self.td_error, self.update], feed_dict)
-        return ret_td
+        ret_td , ret_loss, _ = self.sess.run([self.td_error, self.loss, self.update], feed_dict)
+        return ret_td, ret_loss
 
     def predict(self, state):
         feed_dict = {

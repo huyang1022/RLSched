@@ -22,8 +22,8 @@ class Environment(object):
         self.job_gen_idx = 0    # index of job_gen
         self.mac_gen = None     # mac generator
 
-        self.time_file = open("log/%s" % (pa.agent), "w")   #file to record the logs
-        self.job_file = open("data/%s" % (pa.agent), "w")  # file to record the logs
+        # self.time_file = open("log/%s" % (pa.agent), "w")   #file to record the logs
+        # self.job_file = open("data/%s" % (pa.agent), "w")  # file to record the logs
 
 
     def reset(self):
@@ -81,7 +81,7 @@ class Environment(object):
         self.running_jobs[-1].start(self.current_time)
 
     def obs(self):
-        ret = np.array([], dtype='int64')
+        ret = np.array([], dtype="float32")
         for mac in self.macs:
             ret = np.append(ret, mac.state)
         for job in self.jobs:

@@ -59,7 +59,7 @@ if __name__ == '__main__':
 
                 if done or env.current_time > pa.exp_len:
 
-                    value = 0
+                    value = 0.0
                     for r in buffer_r[::-1]:
                         value = r + pa.discount_rate * value
                         buffer_v.append(value)
@@ -75,29 +75,43 @@ if __name__ == '__main__':
             ep_w.extend(butter_w)
 
         print "================", "Train EP", i, "================"
+        ep_td, ep_c_loss, ep_a_loss = [], [], []
         for j in xrange(pa.batch_num):
-            td_error = critic.learn(ep_s[j], ep_v[j])
-            actor.learn(ep_s[j], ep_v[j], td_error)
-            td_sum += np.sum(td_error)
-            td_num += np.size(td_error)
+            td_error, critic_loss = critic.learn(ep_s[j], ep_v[j])
+            actor_loss = actor.learn(ep_s[j], ep_a[j], td_error)
+            ep_td.append(td_error)
+            ep_c_loss.append(critic_loss)
+            ep_a_loss.append(actor_loss)
+
+        ep_td = np.concatenate(ep_td)
+        ep_a = np.concatenate(ep_a)
+        ep_c_loss = np.array(ep_c_loss)
+        ep_a_loss = np.array(ep_a_loss)
+
+        unique, counts = np.unique(ep_a, return_counts=True)
+        dict_a = dict(zip(unique, counts))
 
 
         print \
             "EP:", i, "\n", \
             "Batch Number:", pa.batch_num, "\n", \
+            "Actions: ", dict_a, "\n", \
+            "EP_avg_c_loss: ", np.mean(ep_c_loss), "\n", \
+            "EP_avg_a_loss: ", np.mean(ep_a_loss), "\n", \
+            "EP_avg_td_error: ", np.mean(ep_td), "\n", \
             "EP_mean_reward: ", np.mean(ep_r), "\n", \
-            "EP_max_reward: ", np.max(ep_r), "\n", \
-            "EP_avg_reward: ", np.sum(ep_r) / pa.batch_num, "\n", \
-            "EP_avg_td_error: ", td_sum / td_num, "\n", \
-            "EP_avg_duration: ", (np.sum(ep_w) + job_gen.total_len) * 1.0 / pa.job_num / pa.batch_num, "\n"
+            "EP_batch_reward: ", np.sum(ep_r) / pa.batch_num, "\n", \
+            "EP_avg_job_duration: ", (np.sum(ep_w) + job_gen.total_len) * 1.0 / pa.job_num / pa.batch_num, "\n"
 
         logger.write("EP: %d\n" % i)
         logger.write("Batch Number: %d\n" % pa.batch_num)
+        logger.write("Actions: %s\n" % str(dict_a))
+        logger.write("EP_avg_c_loss: %f\n" % np.mean(ep_c_loss))
+        logger.write("EP_avg_a_loss: %f\n" % np.mean(ep_a_loss))
+        logger.write("EP_avg_td_error: %f\n" % (np.mean(ep_td)))
         logger.write("EP_mean_reward: %f\n" % np.mean(ep_r))
-        logger.write("EP_max_reward: %f\n" % np.max(ep_r))
-        logger.write("EP_avg_reward: %f\n" % (np.sum(ep_r) / pa.batch_num))
-        logger.write("EP_avg_td_error: %f\n" % (td_sum / td_num))
-        logger.write("EP_avg_duration: %f\n\n" % ((np.sum(ep_w) + job_gen.total_len) * 1.0 / pa.job_num / pa.batch_num))
+        logger.write("EP_batch_reward: %f\n" % (np.sum(ep_r) / pa.batch_num))
+        logger.write("EP_avg_job_duration: %f\n\n" % ((np.sum(ep_w) + job_gen.total_len) * 1.0 / pa.job_num / pa.batch_num))
         logger.flush()
 
 
