@@ -5,7 +5,7 @@ class Parameter(object):
         self.exp_epochs = 10000                          # number of training epochs
         self.exp_len = 1000                             # maximum duration of one experiment
 
-        self.batch_len = 200                            # maximum duration of one batch
+        self.batch_len = 100                            # maximum duration of one batch
         self.batch_num = 1                            # number of jobs in one batch
 
         self.res_num = 2                                # number of resources in the cluster
@@ -15,9 +15,9 @@ class Parameter(object):
         self.mac_max_slot = self.res_slot               # maximum number of resource slots of machine
 
 
-        self.job_num = 100                               # number of jobs in one batch
-        self.job_queue_num = 100                        # maximum number of jobs in the queue
-        self.job_max_len = self.batch_len * 4 / 5         # maximum duration of jobs
+        self.job_num = 50                               # number of jobs in one batch
+        self.job_queue_num = 50                        # maximum number of jobs in the queue
+        self.job_max_len = self.batch_len * 4 / 5 * 5        # maximum duration of jobs
         self.job_max_slot = self.res_slot * 4 / 5         # maximum number of requested resource
         self.job_interval = 2                            # average inter-arrival time
         self.job_seed = 42                              # random seed for job generating

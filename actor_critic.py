@@ -10,7 +10,7 @@ class Actor(object):
         self.pa = pa
         self.t_num = pa.mac_num + pa.job_queue_num
         self.s_dim = self.t_num * pa.res_num * pa.res_slot
-        self.a_dim = pa.alg_num
+        self.a_dim = pa.mac_num * pa.job_queue_num + 1
         self.l_r = pa.learn_rate
 
 
@@ -22,14 +22,13 @@ class Actor(object):
 
             with tf.variable_scope("Net"):
                 l_in = tf.reshape(self.state, [-1, self.t_num * pa.res_num, pa.res_slot, 1])                            #   x, y,  1
-                conv1 = tf.layers.conv2d(l_in, filters=4, kernel_size=[1, 5], padding='same', activation=tf.nn.relu)    #   x, y,  4
-                pool1 = tf.layers.max_pooling2d(conv1, pool_size = [1, 2], strides=[1,2])                                   #   x, y/2,  4
-                conv2 = tf.layers.conv2d(pool1, filters=8, kernel_size=[1, 5], padding='same', activation=tf.nn.relu)   #   x, y/2,  8
-                pool2 = tf.layers.max_pooling2d(conv2, pool_size = [1, 5], strides=[1,1])                                   #   x, y/10, 8
-                flat = tf.reshape(pool2, [-1, self.t_num * pa.res_num * 8])
-                l1 = tf.layers.dense(flat, self.t_num * 8, tf.nn.relu, name = "hidden_layer1")
-                l2 = tf.layers.dense(l1, self.t_num * 4, tf.nn.relu, name = "hidden_layer2")
-                out = tf.layers.dense(l2, self.a_dim, tf.nn.softmax, name = "act_prob")
+                conv1 = tf.layers.conv2d(l_in, filters=8, kernel_size=[1, 5], padding='same', activation=tf.nn.relu)    #   x, y,  16
+                pool1 = tf.layers.max_pooling2d(conv1, pool_size = [1, 2], strides=[1,2])                                #   x, y/2,  16
+                conv2 = tf.layers.conv2d(pool1, filters=16, kernel_size=[1, 5], padding='same', activation=tf.nn.relu)   #   x, y/2,  32
+                pool2 = tf.layers.max_pooling2d(conv2, pool_size = [1, 5], strides=[1,1])                                   #   x, y/10, 32
+                flat = tf.reshape(pool2, [-1, self.t_num * pa.res_num * 16])
+                l1 = tf.layers.dense(flat, self.a_dim * 2, tf.nn.relu, name = "hidden_layer1")
+                out = tf.layers.dense(l1, self.a_dim, tf.nn.softmax, name = "act_prob")
 
                 self.act_prob = out
                 self.parameters = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope = "Actor/Net")
@@ -72,6 +71,7 @@ class Critic(object):
         self.pa = pa
         self.t_num = pa.mac_num + pa.job_queue_num
         self.s_dim = self.t_num * pa.res_num * pa.res_slot
+        self.a_dim = pa.mac_num * pa.job_queue_num + 1
         self.l_r = pa.learn_rate
         with tf.variable_scope("Critic"):
             with tf.variable_scope("Input"):
@@ -80,14 +80,13 @@ class Critic(object):
 
             with tf.variable_scope("Net"):
                 l_in = tf.reshape(self.state, [-1, self.t_num * pa.res_num, pa.res_slot, 1])                            #   x, y,  1
-                conv1 = tf.layers.conv2d(l_in, filters=4, kernel_size=[1, 5], padding='same', activation=tf.nn.relu)    #   x, y,  4
-                pool1 = tf.layers.max_pooling2d(conv1, pool_size = [1, 2], strides=[1,2])                                   #   x, y/2,  4
-                conv2 = tf.layers.conv2d(pool1, filters=8, kernel_size=[1, 5], padding='same', activation=tf.nn.relu)   #   x, y/2,  8
-                pool2 = tf.layers.max_pooling2d(conv2, pool_size = [1, 5], strides=[1,1])                                   #   x, y/10, 8
-                flat = tf.reshape(pool2, [-1, self.t_num * pa.res_num * 8])
-                l1 = tf.layers.dense(flat, self.t_num * 8, tf.nn.relu, name = "hidden_layer1")
-                l2 = tf.layers.dense(l1, self.t_num * 4, tf.nn.relu, name = "hidden_layer2")
-                out = tf.layers.dense(l2, 1,  name = "value")
+                conv1 = tf.layers.conv2d(l_in, filters=8, kernel_size=[1, 5], padding='same', activation=tf.nn.relu)    #   x, y,  16
+                pool1 = tf.layers.max_pooling2d(conv1, pool_size = [1, 2], strides=[1,2])                                   #   x, y/2,  16
+                conv2 = tf.layers.conv2d(pool1, filters=16, kernel_size=[1, 5], padding='same', activation=tf.nn.relu)   #   x, y/2,  32
+                pool2 = tf.layers.max_pooling2d(conv2, pool_size = [1, 5], strides=[1,1])                                   #   x, y/10, 32
+                flat = tf.reshape(pool2, [-1, self.t_num * pa.res_num * 16])
+                l1 = tf.layers.dense(flat, self.a_dim * 2, tf.nn.relu, name = "hidden_layer1")
+                out = tf.layers.dense(l1, 1,  name = "value")
 
                 self.value = out
                 self.parameters = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope = "Critic/Net")

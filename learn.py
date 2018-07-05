@@ -37,25 +37,26 @@ if __name__ == '__main__':
 
 
     for i in xrange(pa.exp_epochs):
-        ep_s, ep_a, ep_r, ep_v, ep_w = [], [], [], [], []
+        ep_s, ep_a, ep_r, ep_v, ep_w, ep_an = [], [], [], [], [], []
         print "================", "Start EP", i, "================"
         for j in xrange(pa.batch_num):
             env.reset()
             env.add_cluster()
             env.batch_id = j
 
-            buffer_s, buffer_a, buffer_r, buffer_v, butter_w = [], [], [], [], []
+            buffer_s, buffer_a, buffer_r, buffer_v, butter_w, butter_an = [], [], [], [], [], []
             td_sum = 0.0
             td_num = 0.0
             while True:
                 state = env.obs()
                 act_id = actor.predict(state[np.newaxis, :])
-                state_, reward, done, info = env.step_act(act_id)
+                state_, reward, done, info, info1 = env.step_act(act_id)
 
                 buffer_s.append(state)
                 buffer_a.append(act_id)
                 buffer_r.append(reward)
                 butter_w.append(info)
+                butter_an.append(info1)
 
                 if done or env.current_time > pa.exp_len:
 
@@ -73,6 +74,7 @@ if __name__ == '__main__':
             ep_v.append(buffer_v)
             ep_r.extend(buffer_r)
             ep_w.extend(butter_w)
+            ep_an.extend(butter_an)
 
         print "================", "Train EP", i, "================"
         ep_td, ep_c_loss, ep_a_loss = [], [], []
@@ -95,7 +97,7 @@ if __name__ == '__main__':
         print \
             "EP:", i, "\n", \
             "Batch Number:", pa.batch_num, "\n", \
-            "Actions: ", dict_a, "\n", \
+            "Actions: ", np.sum(ep_an), "\n", \
             "EP_avg_c_loss: ", np.mean(ep_c_loss), "\n", \
             "EP_avg_a_loss: ", np.mean(ep_a_loss), "\n", \
             "EP_avg_td_error: ", np.mean(ep_td), "\n", \
@@ -105,7 +107,7 @@ if __name__ == '__main__':
 
         logger.write("EP: %d\n" % i)
         logger.write("Batch Number: %d\n" % pa.batch_num)
-        logger.write("Actions: %s\n" % str(dict_a))
+        logger.write("Actions: %d\n" % np.sum(ep_an))
         logger.write("EP_avg_c_loss: %f\n" % np.mean(ep_c_loss))
         logger.write("EP_avg_a_loss: %f\n" % np.mean(ep_a_loss))
         logger.write("EP_avg_td_error: %f\n" % (np.mean(ep_td)))
@@ -115,8 +117,8 @@ if __name__ == '__main__':
         logger.flush()
 
 
-        if i % pa.save_step == 0:
-            saver.save(sess, "%s/%d.ckpt" % (MODEL_DIR, i))
+        # if i % pa.save_step == 0:
+        #     saver.save(sess, "%s/%d.ckpt" % (MODEL_DIR, i))
 
 
 

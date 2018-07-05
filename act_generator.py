@@ -114,15 +114,28 @@ def llf(env):
     return ret_act
 
 
+# def run(env, act_id):
+#     if act_id == 0:
+#         return fifo(env)
+#     elif act_id == 1:
+#         return sjf(env)
+#     elif act_id == 2:
+#         return mlf(env)
+#     elif act_id == 3:
+#         return llf(env)
+#     else:
+#         return None
+
+
 def run(env, act_id):
-    if act_id == 0:
-        return fifo(env)
-    elif act_id == 1:
-        return sjf(env)
-    elif act_id == 2:
-        return mlf(env)
-    elif act_id == 3:
-        return llf(env)
+    if act_id == env.pa.mac_num * env.pa.job_queue_num: return None
+    mac_idx = act_id % env.pa.mac_num
+    job_idx = act_id // env.pa.mac_num
+    if mac_idx >= env.mac_count: return  None
+    if job_idx >= env.job_count: return  None
+    act = Action(env.jobs[job_idx].id, env.macs[mac_idx].id)
+    if env.check_act(act):
+        return act
     else:
         return None
 

@@ -22,8 +22,8 @@ class Environment(object):
         self.job_gen_idx = 0    # index of job_gen
         self.mac_gen = None     # mac generator
 
-        # self.time_file = open("log/%s" % (pa.agent), "w")   #file to record the logs
-        # self.job_file = open("data/%s" % (pa.agent), "w")  # file to record the logs
+        self.time_file = open("log/%s" % (pa.agent), "w")   #file to record the logs
+        self.job_file = open("data/%s" % (pa.agent), "w")  # file to record the logs
 
 
     def reset(self):
@@ -59,7 +59,7 @@ class Environment(object):
         self.job_count -= 1
 
     def check_act(self, act): #act = [job_x, mac_y]  allocate job x to machine y
-        # type: (Action) -> None
+        # type: (Action) -> int
         job_index = [x.id for x in self.jobs].index(act.job_id)
         mac_index = [x.id for x in self.macs].index(act.mac_id)
         for i in xrange(self.pa.res_num):
@@ -121,7 +121,9 @@ class Environment(object):
     def step_act(self, act_id):
         act = act_generator.run(self, act_id)
         self.step()
+        ret_info1 = 0
         if act is not None:
+            ret_info1 = 1
             self.take_act(act)
             self.pop_job(act.job_id)
 
@@ -143,7 +145,7 @@ class Environment(object):
         else:
             ret_done = False
 
-        return ret_state, ret_reward, ret_done, ret_info
+        return ret_state, ret_reward, ret_done, ret_info, ret_info1
 
     def get_usage(self, res_id):
         res_used = 0
