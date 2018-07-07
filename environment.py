@@ -82,16 +82,20 @@ class Environment(object):
 
     def obs(self):
         ret = np.array([], dtype="float32")
-        for mac in self.macs:
-            ret = np.append(ret, mac.state)
-        for job in self.jobs:
-            ret = np.append(ret, job.state)
-        for i in xrange(self.pa.job_queue_num - self.job_count):
+        mac_n = min(self.pa.mac_train_num, self.mac_count)
+        job_n = min(self.pa.job_train_num, self.job_count)
+        for i in xrange(mac_n):
+            ret = np.append(ret, self.macs[i].state)
+        for i in xrange(self.pa.mac_train_num  - mac_n):
+            ret = np.append(ret, np.zeros([self.pa.res_num, self.pa.res_slot]))
+        for i in xrange(job_n):
+            ret = np.append(ret, self.jobs[i].state)
+        for i in xrange(self.pa.job_train_num - job_n):
             ret = np.append(ret, np.zeros([self.pa.res_num, self.pa.res_slot]))
         return ret
 
     def reward(self):
-        return -self.job_count * 1.0 / self.pa.job_queue_num
+        return -self.job_count * 1.0 / self.pa.job_num
 
     def step(self): #act = [job_x, mac_y]  allocate job x to machine y
         # type: (Environment) -> None
