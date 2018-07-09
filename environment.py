@@ -1,5 +1,4 @@
 import numpy as np
-
 from parameter import Parameter
 from element import Machine, Job, Action
 import act_generator
@@ -22,8 +21,8 @@ class Environment(object):
         self.job_gen_idx = 0    # index of job_gen
         self.mac_gen = None     # mac generator
 
-        self.time_file = open("log/%s" % (pa.agent), "w")   #file to record the logs
-        self.job_file = open("data/%s" % (pa.agent), "w")  # file to record the logs
+        self.time_file = open("./log/env_time_%s" % (pa.agent), "w")   #file to record the logs
+        self.job_file = open("./log/env_job_%s" % (pa.agent), "w")  # file to record the logs
 
 
     def reset(self):
@@ -43,6 +42,12 @@ class Environment(object):
         self.mac_count += 1
         assert self.mac_count <= self.pa.mac_num
 
+    def check_machine(self, mac_id):
+        for i in self.macs:
+            if i.id == mac_id: return True
+        return False
+
+
     def add_cluster(self):
         for i in self.mac_gen.mac_sequence:
             self.add_machine(i)
@@ -58,8 +63,15 @@ class Environment(object):
         self.jobs.pop(job_index)
         self.job_count -= 1
 
+    def check_job(self, job_id):
+        for i in self.jobs:
+            if i.id == job_id: return True
+        return False
+
     def check_act(self, act): #act = [job_x, mac_y]  allocate job x to machine y
         # type: (Action) -> int
+        if not self.check_machine(act.mac_id): return False
+        if not self.check_job(act.job_id): return False
         job_index = [x.id for x in self.jobs].index(act.job_id)
         mac_index = [x.id for x in self.macs].index(act.mac_id)
         for i in xrange(self.pa.res_num):
@@ -85,13 +97,46 @@ class Environment(object):
         mac_n = min(self.pa.mac_train_num, self.mac_count)
         job_n = min(self.pa.job_train_num, self.job_count)
         for i in xrange(mac_n):
-            ret = np.append(ret, self.macs[i].state)
+            for j in xrange(self.pa.res_num):
+                for k in xrange(self.pa.res_slot):
+                    ret = np.append(ret, np.ones(int(self.macs[i].state[j][k])))
+                    ret = np.append(ret, np.zeros(self.pa.job_max_len - int(self.macs[i].state[j][k])))
         for i in xrange(self.pa.mac_train_num  - mac_n):
-            ret = np.append(ret, np.zeros([self.pa.res_num, self.pa.res_slot]))
+            for j in xrange(self.pa.res_num):
+                for k in xrange(self.pa.res_slot):
+                    ret = np.append(ret, np.zeros(self.pa.job_max_len))
+
         for i in xrange(job_n):
-            ret = np.append(ret, self.jobs[i].state)
+            for j in xrange(self.pa.res_num):
+                for k in xrange(self.pa.res_slot):
+                    ret = np.append(ret, np.ones(int(self.jobs[i].state[j][k])))
+                    ret = np.append(ret, np.zeros(self.pa.job_max_len - int(self.jobs[i].state[j][k])))
+
         for i in xrange(self.pa.job_train_num - job_n):
-            ret = np.append(ret, np.zeros([self.pa.res_num, self.pa.res_slot]))
+            for j in xrange(self.pa.res_num):
+                for k in xrange(self.pa.res_slot):
+                    ret = np.append(ret, np.zeros(self.pa.job_max_len))
+
+        # for i in xrange(mac_n):
+        #     for j in xrange(self.pa.res_num):
+        #         ret = np.append(ret, np.zeros(self.pa.res_slot -1))
+        #         ret = np.append(ret, self.macs[i].state[j])
+        #         ret = np.append(ret, np.zeros(self.pa.res_slot -1))
+        #
+        # for i in xrange(self.pa.mac_train_num - mac_n):
+        #     for j in xrange(self.pa.res_num):
+        #         ret = np.append(ret, np.zeros(self.pa.res_slot * 3 - 2))
+        #
+        # for i in xrange(job_n):
+        #     for j in xrange(self.pa.res_num):
+        #         ret = np.append(ret, np.zeros(self.pa.res_slot -1))
+        #         ret = np.append(ret, self.jobs[i].state[j])
+        #         ret = np.append(ret, np.zeros(self.pa.res_slot -1))
+        #
+        # for i in xrange(self.pa.job_train_num - job_n):
+        #     for j in xrange(self.pa.res_num):
+        #         ret = np.append(ret, np.zeros(self.pa.res_slot * 3 - 2))
+
         return ret
 
     def reward(self):
@@ -105,12 +150,7 @@ class Environment(object):
 
         for job in self.running_jobs:
             job.step()
-            # if job.status == "Finished":
-            #     print "ID: ",               job.id
-            #     print "Submission Time: ",  job.submission_time
-            #     print "Starting Time",      job.starting_time
-            #     print "Execution time: ",   job.execution_time
-            #     print "======================================="
+
         self.finished_jobs.extend([job for job in self.running_jobs if job.status == "Finished"])
         self.running_jobs = [job for job in self.running_jobs if job.status != "Finished"]
 

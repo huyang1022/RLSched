@@ -8,10 +8,10 @@ import tensorflow as tf
 import numpy as np
 from actor_critic import Actor, Critic
 import os
-import matplotlib.pyplot as plt
+import plot
 
 LOG_DIR = "./log"
-LOG_FILE = "log_rl"
+LOG_FILE = LOG_DIR + "/rl_log"
 MODEL_DIR = "./model"
 
 if __name__ == '__main__':
@@ -86,7 +86,7 @@ if __name__ == '__main__':
         for j in xrange(pa.batch_num):
             td_error, critic_loss = critic.learn(ep_s[j], ep_v[j])
             if i < pa.su_epochs:
-                actor_loss = actor.su_train(ep_s[j], ep_a[j])
+                actor_loss = actor.s_train(ep_s[j], ep_a[j])
             else:
                 actor_loss = actor.learn(ep_s[j], ep_a[j], td_error)
             ep_td.append(td_error)
@@ -127,6 +127,5 @@ if __name__ == '__main__':
             saver.save(sess, "%s/%d.ckpt" % (MODEL_DIR, i))
     logger.write(str(plt_d))
     logger.flush()
-    plt.plot(np.arange(len(plt_d)), plt_d)
-    plt.show()
 
+    plot.run()

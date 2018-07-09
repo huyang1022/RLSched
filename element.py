@@ -26,9 +26,9 @@ class Machine(object):
     def step(self):
         for i in xrange(self.res_num):
             self.state[i][self.state[i] > 0] -= 1
-            # no_zero = (self.state[i] > 0)
-            # self.state[i, :no_zero.sum()] = self.state[i, no_zero]
-            # self.state[i, no_zero.sum():] = 0
+            no_zero = (self.state[i] > 0)
+            self.state[i, :no_zero.sum()] = self.state[i, no_zero]
+            self.state[i, no_zero.sum():] = 0
 
     def show(self):
         for i in xrange(self.res_num):
