@@ -21,7 +21,7 @@ def get_id(env):
     if env.job_count == 0: return env.pa.mac_train_num * env.pa.job_train_num
     job_n = min(env.pa.job_train_num, env.job_count)
     min_duration = sys.maxint
-    # #
+
     job_idx = -1
     for i in xrange(job_n):
         if env.jobs[i].duration < min_duration:
