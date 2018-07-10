@@ -63,9 +63,11 @@ if __name__ == '__main__':
                 butter_w.append(info)
                 butter_a_n.append(info1)
 
-                if done or env.current_time > pa.exp_len:
-
-                    value = 0.0
+                if done or env.current_time >= pa.exp_len:
+                    if done:
+                        value = 0
+                    else:
+                        value = len(env.finished_jobs) - pa.job_num
                     for r in buffer_r[::-1]:
                         value = r + pa.discount_rate * value
                         buffer_v.append(value)
@@ -98,7 +100,8 @@ if __name__ == '__main__':
         ep_c_loss = np.array(ep_c_loss)
         ep_a_loss = np.array(ep_a_loss)
 
-        plt_d.append((np.sum(ep_w) + job_gen.total_len) * 1.0 / pa.job_num / pa.batch_num)
+        # plt_d.append((np.sum(ep_w) + job_gen.total_len) * 1.0 / pa.job_num / pa.batch_num)
+        plt_d.append(env.current_time *1.0 /pa.batch_num)
 
         print \
             "EP:", i, "\n", \
@@ -123,8 +126,9 @@ if __name__ == '__main__':
         logger.flush()
 
 
-        if i % pa.save_step == 0:
-            saver.save(sess, "%s/%d.ckpt" % (MODEL_DIR, i))
+        # if i % pa.save_step == 0:
+        #     saver.save(sess, "%s/%d.ckpt" % (MODEL_DIR, i))
+
     logger.write(str(plt_d))
     logger.flush()
 

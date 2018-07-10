@@ -10,7 +10,7 @@ class Actor(object):
         self.pa = pa
         self.t_num = pa.mac_train_num + pa.job_train_num
         self.r_num = pa.res_num * pa.res_slot * pa.job_max_len
-        self.s_dim = self.t_num * self.r_num
+        self.s_dim = self.t_num * self.r_num + pa.job_num * 2
         self.a_dim =pa.mac_train_num * pa.job_train_num + 1
         self.l_r = pa.a_learn_rate
 
@@ -91,7 +91,7 @@ class Critic(object):
         self.pa = pa
         self.t_num = pa.mac_train_num + pa.job_train_num
         self.r_num = pa.res_num * pa.res_slot * pa.job_max_len
-        self.s_dim = self.t_num * self.r_num
+        self.s_dim = self.t_num * self.r_num + pa.job_num * 2
         self.a_dim =pa.mac_train_num * pa.job_train_num + 1
         self.l_r = pa.c_learn_rate
         with tf.variable_scope("Critic"):

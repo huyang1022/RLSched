@@ -45,7 +45,7 @@ class JobGenerator(object):
 
                 self.total_len += duration
                 self.job_len[k] += duration
-                self.job_sequence[k].append(Job(submission_time, duration, pa.res_num, pa.res_slot, res_vec))
+                self.job_sequence[k].append(Job(0, duration, pa.res_num, pa.res_slot, res_vec))
 
             self.job_sequence[k].sort(key=lambda x: x.submission_time)
             self.job_sequence[k].append(None)

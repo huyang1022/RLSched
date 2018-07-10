@@ -63,10 +63,14 @@ class Environment(object):
         self.jobs.pop(job_index)
         self.job_count -= 1
 
+    def sort_job(self):
+        self.jobs.sort(key=lambda x: (-x.duration, x.id))
+
     def check_job(self, job_id):
         for i in self.jobs:
             if i.id == job_id: return True
         return False
+
 
     def check_act(self, act): #act = [job_x, mac_y]  allocate job x to machine y
         # type: (Action) -> int
@@ -117,31 +121,18 @@ class Environment(object):
                 for k in xrange(self.pa.res_slot):
                     ret = np.append(ret, np.zeros(self.pa.job_max_len))
 
-        # for i in xrange(mac_n):
-        #     for j in xrange(self.pa.res_num):
-        #         ret = np.append(ret, np.zeros(self.pa.res_slot -1))
-        #         ret = np.append(ret, self.macs[i].state[j])
-        #         ret = np.append(ret, np.zeros(self.pa.res_slot -1))
-        #
-        # for i in xrange(self.pa.mac_train_num - mac_n):
-        #     for j in xrange(self.pa.res_num):
-        #         ret = np.append(ret, np.zeros(self.pa.res_slot * 3 - 2))
-        #
-        # for i in xrange(job_n):
-        #     for j in xrange(self.pa.res_num):
-        #         ret = np.append(ret, np.zeros(self.pa.res_slot -1))
-        #         ret = np.append(ret, self.jobs[i].state[j])
-        #         ret = np.append(ret, np.zeros(self.pa.res_slot -1))
-        #
-        # for i in xrange(self.pa.job_train_num - job_n):
-        #     for j in xrange(self.pa.res_num):
-        #         ret = np.append(ret, np.zeros(self.pa.res_slot * 3 - 2))
-
+        time_n = max(0, self.current_time)
+        # ret = np.append(ret, np.ones(time_n))
+        # ret = np.append(ret, np.zeros(self.pa.exp_len - time_n))
+        ret = np.append(ret, np.ones(self.job_count))
+        ret = np.append(ret, np.zeros(self.pa.job_num - self.job_count))
+        ret = np.append(ret, np.ones(len(self.finished_jobs)))
+        ret = np.append(ret, np.zeros(self.pa.job_num - len(self.finished_jobs)))
         return ret
 
     def reward(self):
-        return -self.job_count * 1.0 / self.pa.job_num
-
+        # return -self.job_count * 1.0 / self.pa.job_num
+        return self.current_time * -1.0 / self.pa.exp_len
     def step(self): #act = [job_x, mac_y]  allocate job x to machine y
         # type: (Environment) -> None
         self.current_time += 1
@@ -182,6 +173,7 @@ class Environment(object):
                 self.add_job(job)
             self.job_gen_idx += 1
             job = self.job_gen.job_sequence[self.batch_id][self.job_gen_idx]
+        self.sort_job()
         ret_state = self.obs()
 
         if (job is None) and self.status() == "Idle":
