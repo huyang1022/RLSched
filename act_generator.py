@@ -34,17 +34,17 @@ def get_id(env):
     #         return MOD * job_idx + j
     # return env.pa.mac_train_num * env.pa.job_train_num
 
-    #
-    # ret_act = env.pa.mac_train_num * env.pa.job_train_num
-    # for i in xrange(job_n):
-    #     for j in xrange(env.mac_count):
-    #         act = Action(env.jobs[i].id, env.macs[j].id)
-    #         if env.check_act(act) and env.jobs[i].duration < min_duration:
-    #             ret_act = MOD * i + j
-    #             min_duration = env.jobs[i].duration
-    # return ret_act
 
-    #
+    ret_act = env.pa.mac_train_num * env.pa.job_train_num
+    for i in xrange(job_n):
+        for j in xrange(env.mac_count):
+            act = Action(env.jobs[i].id, env.macs[j].id)
+            if env.check_act(act) and env.jobs[i].duration < min_duration:
+                ret_act = MOD * i + j
+                min_duration = env.jobs[i].duration
+    return ret_act
+
+
     ret_act = env.pa.mac_train_num * env.pa.job_train_num
     for i in xrange(job_n):
         for j in xrange(env.mac_count):

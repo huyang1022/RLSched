@@ -55,13 +55,13 @@ if __name__ == '__main__':
                     act_id = act_generator.get_id(env)
                 else:
                     act_id = actor.predict(state[np.newaxis, :])
-                state_, reward, done, info, info1 = env.step_act(act_id)
+                state_, reward, done, info, flag = env.step_act(act_id)
 
                 buffer_s.append(state)
                 buffer_a.append(act_id)
                 buffer_r.append(reward)
                 butter_w.append(info)
-                butter_a_n.append(info1)
+                butter_a_n.append(flag)
 
                 if done or env.current_time >= pa.exp_len:
                     if done:
