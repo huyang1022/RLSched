@@ -7,7 +7,7 @@ class Parameter(object):
         self.su_epochs = 0                           # supervised training epochs
 
         self.batch_len = 50                            # maximum duration of one batch
-        self.batch_num = 1                            # number of jobs in one batch
+        self.batch_num = 10                            # number of jobs in one batch
 
         self.res_num = 2                                # number of resources in the cluster
         self.res_slot = 10                            # maximum number of resource slots
@@ -23,7 +23,7 @@ class Parameter(object):
         self.job_max_len = 20                              # maximum duration of jobs
         self.job_max_slot = self.res_slot * 4 / 5         # maximum number of requested resource
         self.job_interval = 2                            # average inter-arrival time
-        self.job_seed =  7                             # random seed for job generating
+        self.job_seed =  99                             # random seed for job generating
 
 
         self.sched_num = 1                            # number of schedules at one time
@@ -32,10 +32,10 @@ class Parameter(object):
         self.ecs_process_num = 100                       # number of jobs that can be processed in ecs scheduler
         self.agent = "rl"
 
-        self.alg_num = 4                                # number of candidate algorithms
+        self.alg_num = 3                                # number of candidate algorithms
         self.a_learn_rate = 0.0001                         # actor learning rate
         self.c_learn_rate = 0.0001                         # critic learning rate
-        self.discount_rate = 0.95                         # discount rate
+        self.discount_rate = 0.9                         # discount rate
         self.learn_step = 100                            # steps of update
         self.eps = 1e-10                                 # eps
         self.entropy_rate = 0.001

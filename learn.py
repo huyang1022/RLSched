@@ -52,7 +52,7 @@ if __name__ == '__main__':
             while True:
                 state = env.obs()
                 if i < pa.su_epochs:
-                    act_id = act_generator.get_id(env)
+                    act_id = act_generator.get_id(env, i)
                 else:
                     act_id = actor.predict(state[np.newaxis, :])
                 state_, reward, done, info, flag = env.step_act(act_id)
@@ -101,7 +101,7 @@ if __name__ == '__main__':
         ep_a_loss = np.array(ep_a_loss)
 
         # plt_d.append((np.sum(ep_w) + job_gen.total_len) * 1.0 / pa.job_num / pa.batch_num)
-        plt_d.append(env.current_time *1.0 /pa.batch_num)
+        plt_d.append(np.sum(ep_w) *1.0 /pa.batch_num)
 
         print \
             "EP:", i, "\n", \

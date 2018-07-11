@@ -132,7 +132,8 @@ class Environment(object):
 
     def reward(self):
         # return -self.job_count * 1.0 / self.pa.job_num
-        return self.current_time * -1.0 / self.pa.batch_len
+        # return self.current_time * -1.0 / self.pa.batch_len
+        return -1.0
     def step(self): #act = [job_x, mac_y]  allocate job x to machine y
         # type: (Environment) -> None
         self.current_time += 1
@@ -166,7 +167,6 @@ class Environment(object):
             ret_flag = 1
         else:
             ret_reward = self.reward()
-            ret_info = self.job_count
             ret_flag = 0
             self.step()
             job = self.job_gen.job_sequence[self.batch_id][self.job_gen_idx]
@@ -180,8 +180,10 @@ class Environment(object):
             ret_state = self.obs()
 
             if (job is None) and self.status() == "Idle":
+                ret_info = 0
                 ret_done = True
             else:
+                ret_info = 1
                 ret_done = False
 
         return ret_state, ret_reward, ret_done, ret_info, ret_flag
