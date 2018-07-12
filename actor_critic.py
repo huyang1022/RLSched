@@ -10,7 +10,7 @@ class Actor(object):
         self.pa = pa
         self.t_num = pa.mac_train_num + pa.job_train_num
         self.r_num = pa.res_num * pa.res_slot * pa.job_max_len
-        self.s_dim = self.t_num * self.r_num + pa.job_num * 2
+        self.s_dim = self.t_num * self.r_num + 2 * pa.job_train_num * pa.job_max_len
         self.a_dim =pa.mac_train_num * pa.job_train_num + 1
         self.l_r = pa.a_learn_rate
 
@@ -39,10 +39,13 @@ class Actor(object):
                 self.parameters = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope = "Actor/Net")
 
             with tf.variable_scope("Loss"):
-                log_prob = tf.multiply(tf.log(self.act_prob + self.pa.eps), tf.squeeze(tf.one_hot(self.act, self.a_dim)))
-                sum_prob = - tf.reduce_sum(tf.multiply(tf.reduce_sum(log_prob, axis=1, keepdims=True), self.td_error))
-                entropy =  tf.reduce_sum(tf.multiply(self.act_prob, tf.log(self.act_prob + self.pa.eps)))
-                self.loss = sum_prob + self.pa.entropy_rate * entropy
+                # log_prob = tf.multiply(tf.log(self.act_prob + self.pa.eps), tf.squeeze(tf.one_hot(self.act, self.a_dim)))
+                # sum_prob = tf.reduce_sum(tf.multiply(tf.reduce_sum(log_prob, axis=1, keepdims=True), - self.td_error))
+                log_prob = tf.reduce_sum(tf.multiply(self.act_prob, tf.squeeze(tf.one_hot(self.act, self.a_dim))), axis=1, keepdims=True)
+                sum_prob = tf.reduce_sum(tf.multiply(tf.log(log_prob), - self.td_error))
+                self.entropy =  tf.reduce_sum(tf.multiply(self.act_prob, tf.log(self.act_prob + self.pa.eps)))
+                self.loss = sum_prob + self.pa.entropy_rate * self.entropy
+
 
 
             with tf.variable_scope('Train'):
@@ -52,6 +55,7 @@ class Actor(object):
 
             with tf.variable_scope("S_Loss"):
                 s_error = tf.subtract(self.act_prob, tf.squeeze(tf.one_hot(self.act, self.a_dim)))
+                self.s_entropy =  tf.reduce_sum(tf.multiply(self.act_prob, tf.log(self.act_prob + self.pa.eps)))
                 self.s_loss = tf.reduce_sum(tf.square(s_error))
 
             with tf.variable_scope('S_Train'):
@@ -64,8 +68,8 @@ class Actor(object):
             self.state: state,
             self.act: act
         }
-        ret_loss , _ = self.sess.run([self.s_loss, self.s_update], feed_dict)
-        return ret_loss
+        ret_entropy, ret_loss , _ = self.sess.run([self.s_entropy, self.s_loss, self.s_update], feed_dict)
+        return ret_entropy, ret_loss
 
     def learn(self, state, act, td_error):
         feed_dict = {
@@ -73,8 +77,8 @@ class Actor(object):
             self.act: act,
             self.td_error: td_error
         }
-        ret_loss , _ = self.sess.run([self.loss, self.update], feed_dict)
-        return ret_loss
+        ret_entropy, ret_loss , _ = self.sess.run([self.entropy, self.loss, self.update], feed_dict)
+        return ret_entropy, ret_loss
 
     def predict(self, state):
         feed_dict = {
@@ -91,7 +95,7 @@ class Critic(object):
         self.pa = pa
         self.t_num = pa.mac_train_num + pa.job_train_num
         self.r_num = pa.res_num * pa.res_slot * pa.job_max_len
-        self.s_dim = self.t_num * self.r_num + pa.job_num * 2
+        self.s_dim = self.t_num * self.r_num + 2 * pa.job_train_num * pa.job_max_len
         self.a_dim =pa.mac_train_num * pa.job_train_num + 1
         self.l_r = pa.c_learn_rate
         with tf.variable_scope("Critic"):

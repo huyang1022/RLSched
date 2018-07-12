@@ -21,26 +21,30 @@ def get_id(env, alg_id):
     if env.job_count == 0: return env.pa.mac_train_num * env.pa.job_train_num
     job_n = min(env.pa.job_train_num, env.job_count)
     ret_act = env.pa.mac_train_num * env.pa.job_train_num
-    min_duration = sys.maxint
 
-    if alg_id % env.pa.alg_num == 0:
-        job_idx = -1
+
+    if alg_id % env.pa.alg_num == 0:    #pack
+        max_score = 0
         for i in xrange(job_n):
-            if env.jobs[i].duration < min_duration:
-                min_duration = env.jobs[i].duration
-                job_idx = i
-        for j in xrange(env.mac_count):
-            act = Action(env.jobs[job_idx].id, env.macs[j].id)
-            if env.check_act(act):
-                return MOD * job_idx + j
-    elif alg_id % env.pa.alg_num == 1:
+            for j in xrange(env.mac_count):
+                act = Action(env.jobs[i].id, env.macs[j].id)
+                if env.check_act(act):
+                    score = 0
+                    for k in xrange(env.pa.res_num):
+                        res_avail = (env.macs[j].state[k] == 0)
+                        score += res_avail.sum() * env.jobs[i].res_vec[k]
+                    if score > max_score:
+                        max_score = score
+                        ret_act = MOD * i + j
+    elif alg_id % env.pa.alg_num == 1:  #sjf
+        min_duration = sys.maxint
         for i in xrange(job_n):
             for j in xrange(env.mac_count):
                 act = Action(env.jobs[i].id, env.macs[j].id)
                 if env.check_act(act) and env.jobs[i].duration < min_duration:
                     ret_act = MOD * i + j
                     min_duration = env.jobs[i].duration
-    elif alg_id % env.pa.alg_num == 2:
+    elif alg_id % env.pa.alg_num == 2:     #cp
         for i in xrange(job_n):
             for j in xrange(env.mac_count):
                 act = Action(env.jobs[i].id, env.macs[j].id)

@@ -15,14 +15,14 @@ class Environment(object):
         self.job_count = 0      # number of jobs
         self.running_jobs = []  # set of running jobs
         self.finished_jobs = [] # set of finished jobs
-
+        self.finished_ids = []  # ID of finished jobs
         self.batch_id = 0       # ID of batch
         self.job_gen = None     # job generator
         self.job_gen_idx = 0    # index of job_gen
         self.mac_gen = None     # mac generator
-
-        self.time_file = open("./log/env_time_%s" % (pa.agent), "w")   #file to record the logs
-        self.job_file = open("./log/env_job_%s" % (pa.agent), "w")  # file to record the logs
+        self.job_set = set()   # flag of enqueue
+        # self.time_file = open("./log/env_time_%s" % (pa.agent), "w")   #file to record the logs
+        # self.job_file = open("./log/env_job_%s" % (pa.agent), "w")  # file to record the logs
 
 
     def reset(self):
@@ -33,8 +33,10 @@ class Environment(object):
         self.job_count = 0
         self.running_jobs = []
         self.finished_jobs = []
+        self.finished_ids = []
         self.batch_id = 0
         self.job_gen_idx = 0
+        self.job_set = set()
 
     def add_machine(self, mac):
         # type: (Machine) -> None
@@ -63,14 +65,18 @@ class Environment(object):
         self.jobs.pop(job_index)
         self.job_count -= 1
 
-    def sort_job(self):
-        self.jobs.sort(key=lambda x: (-x.duration, x.id))
 
     def check_job(self, job_id):
         for i in self.jobs:
             if i.id == job_id: return True
         return False
 
+    def check_parent(self, job_id):
+        for i in xrange(self.pa.job_num):
+            if self.job_gen.job_matrix[i][job_id]:
+                if i not in self.finished_ids:
+                    return False
+        return True
 
     def check_act(self, act): #act = [job_x, mac_y]  allocate job x to machine y
         # type: (Action) -> int
@@ -115,19 +121,27 @@ class Environment(object):
                 for k in xrange(self.pa.res_slot):
                     ret = np.append(ret, np.ones(int(self.jobs[i].state[j][k])))
                     ret = np.append(ret, np.zeros(self.pa.job_max_len - int(self.jobs[i].state[j][k])))
+            chd_num = self.jobs[i].child_num
+            avg_len = self.jobs[i].child_len / chd_num
+            ret = np.append(ret, np.ones(chd_num))
+            ret = np.append(ret, np.zeros(self.pa.job_max_len - chd_num))
+            ret = np.append(ret, np.ones(avg_len))
+            ret = np.append(ret, np.zeros(self.pa.job_max_len - avg_len))
 
         for i in xrange(self.pa.job_train_num - job_n):
             for j in xrange(self.pa.res_num):
                 for k in xrange(self.pa.res_slot):
                     ret = np.append(ret, np.zeros(self.pa.job_max_len))
+            ret = np.append(ret, np.zeros(self.pa.job_max_len))
+            ret = np.append(ret, np.zeros(self.pa.job_max_len))
 
-        time_n = max(0, self.current_time)
+        # time_n = max(0, self.current_time)
         # ret = np.append(ret, np.ones(time_n))
         # ret = np.append(ret, np.zeros(self.pa.exp_len - time_n))
-        ret = np.append(ret, np.ones(self.job_count))
-        ret = np.append(ret, np.zeros(self.pa.job_num - self.job_count))
-        ret = np.append(ret, np.ones(len(self.finished_jobs)))
-        ret = np.append(ret, np.zeros(self.pa.job_num - len(self.finished_jobs)))
+        # ret = np.append(ret, np.ones(self.job_count))
+        # ret = np.append(ret, np.zeros(self.pa.job_num - self.job_count))
+        # ret = np.append(ret, np.ones(len(self.finished_jobs)))
+        # ret = np.append(ret, np.zeros(self.pa.job_num - len(self.finished_jobs)))
         return ret
 
     def reward(self):
@@ -144,6 +158,7 @@ class Environment(object):
             job.step()
 
         self.finished_jobs.extend([job for job in self.running_jobs if job.status == "Finished"])
+        self.finished_ids.extend([job.id for job in self.running_jobs if job.status == "Finished"])
         self.running_jobs = [job for job in self.running_jobs if job.status != "Finished"]
 
     def status(self):
@@ -166,23 +181,29 @@ class Environment(object):
             ret_info = 0
             ret_flag = 1
         else:
-            ret_reward = self.reward()
-            ret_flag = 0
             self.step()
-            job = self.job_gen.job_sequence[self.batch_id][self.job_gen_idx]
-            while (job is not None and
-                   job.submission_time <= self.current_time
-                ):
-                if (job.submission_time == self.current_time):  # add job to environment
-                    self.add_job(job)
-                self.job_gen_idx += 1
-                job = self.job_gen.job_sequence[self.batch_id][self.job_gen_idx]
-            ret_state = self.obs()
+            for job in self.job_gen.job_sequence[self.batch_id]:
+                if job.id not in self.job_set:
+                    if self.check_parent(job.id):
+                        self.job_set.add(job.id)
+                        self.add_job(job)
 
-            if (job is None) and self.status() == "Idle":
+            # job = self.job_gen.job_sequence[self.batch_id][self.job_gen_idx]
+            # while (job is not None and
+            #        job.submission_time <= self.current_time
+            #     ):
+            #     if (job.submission_time == self.current_time):  # add job to environment
+            #         self.add_job(job)
+            #     self.job_gen_idx += 1
+            #     job = self.job_gen.job_sequence[self.batch_id][self.job_gen_idx]
+            ret_state = self.obs()
+            ret_flag = 0
+            if len(self.finished_jobs) == self.pa.job_num:
+                ret_reward = 0.0
                 ret_info = 0
                 ret_done = True
             else:
+                ret_reward = self.reward()
                 ret_info = 1
                 ret_done = False
 

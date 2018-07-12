@@ -4,9 +4,9 @@ import numpy as np
 class Machine(object):
     count = 0
 
-    def __init__(self, res_num, res_slot, res_vec):
-        self.id = Machine.count
+    def __init__(self, res_num, res_slot, res_vec, mac_id):
         Machine.count += 1
+        self.id = mac_id
         self.res_num = res_num
         self.res_slot = res_slot
         self.res_vec = res_vec
@@ -42,9 +42,9 @@ class Machine(object):
 class Job(object):
     count = 0
 
-    def __init__(self, submission_time, duration, res_num, res_slot, res_vec):
-        self.id = Job.count
+    def __init__(self, submission_time, duration, res_num, res_slot, res_vec, job_id):
         Job.count += 1
+        self.id = job_id
         self.res_num = res_num
         self.res_slot = res_slot
         self.res_vec = res_vec
@@ -54,6 +54,8 @@ class Job(object):
         self.execution_time = -1
         self.status = "Pending"
         self.state = np.zeros([res_num, res_slot])
+        self.child_num = 1
+        self.child_len = duration
 
         assert len(res_vec) == res_num
         for i in xrange(res_num):

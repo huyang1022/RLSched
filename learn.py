@@ -33,6 +33,7 @@ if __name__ == '__main__':
     env = Environment(pa)
     mac_gen = MacGenerator(pa)
     job_gen = JobGenerator(pa)
+
     env.job_gen = job_gen
     env.mac_gen = mac_gen
     plt_d = []
@@ -45,12 +46,10 @@ if __name__ == '__main__':
             env.reset()
             env.add_cluster()
             env.batch_id = j
+            state = env.obs()
 
             buffer_s, buffer_a, buffer_r, buffer_v, butter_w, butter_a_n = [], [], [], [], [], []
-            td_sum = 0.0
-            td_num = 0.0
             while True:
-                state = env.obs()
                 if i < pa.su_epochs:
                     act_id = act_generator.get_id(env, i)
                 else:
@@ -75,6 +74,7 @@ if __name__ == '__main__':
 
                     buffer_s, buffer_a,  buffer_v = np.vstack(buffer_s), np.vstack(buffer_a), np.vstack(buffer_v)
                     break
+                state = state_
 
             ep_s.append(buffer_s)
             ep_a.append(buffer_a)
@@ -84,22 +84,23 @@ if __name__ == '__main__':
             ep_a_n.extend(butter_a_n)
 
         print "================", "Train EP", i, "================"
-        ep_td, ep_c_loss, ep_a_loss = [], [], []
+        ep_td, ep_c_loss, ep_a_loss, ep_a_entropy = [], [], [], []
         for j in xrange(pa.batch_num):
             td_error, critic_loss = critic.learn(ep_s[j], ep_v[j])
             if i < pa.su_epochs:
-                actor_loss = actor.s_train(ep_s[j], ep_a[j])
+                actor_entropy, actor_loss = actor.s_train(ep_s[j], ep_a[j])
             else:
-                actor_loss = actor.learn(ep_s[j], ep_a[j], td_error)
+                actor_entropy, actor_loss = actor.learn(ep_s[j], ep_a[j], td_error)
             ep_td.append(td_error)
             ep_c_loss.append(critic_loss)
             ep_a_loss.append(actor_loss)
+            ep_a_entropy.append(actor_entropy)
 
         ep_td = np.concatenate(ep_td)
         ep_a = np.concatenate(ep_a)
         ep_c_loss = np.array(ep_c_loss)
         ep_a_loss = np.array(ep_a_loss)
-
+        ep_a_entropy = np.array(ep_a_entropy)
         # plt_d.append((np.sum(ep_w) + job_gen.total_len) * 1.0 / pa.job_num / pa.batch_num)
         plt_d.append(np.sum(ep_w) *1.0 /pa.batch_num)
 
@@ -109,6 +110,7 @@ if __name__ == '__main__':
             "Actions: ", np.sum(ep_a_n), "\n", \
             "EP_avg_c_loss: ", np.mean(ep_c_loss), "\n", \
             "EP_avg_a_loss: ", np.mean(ep_a_loss), "\n", \
+            "EP_avg_a_entropy: ", np.mean(ep_a_entropy), "\n", \
             "EP_avg_td_error: ", np.mean(ep_td), "\n", \
             "EP_mean_reward: ", np.mean(ep_r), "\n", \
             "EP_batch_reward: ", np.sum(ep_r) / pa.batch_num, "\n", \
@@ -119,6 +121,7 @@ if __name__ == '__main__':
         logger.write("Actions: %d\n" % np.sum(ep_a_n))
         logger.write("EP_avg_c_loss: %f\n" % np.mean(ep_c_loss))
         logger.write("EP_avg_a_loss: %f\n" % np.mean(ep_a_loss))
+        logger.write("EP_avg_a_entropy: %f\n" % np.mean(ep_a_entropy))
         logger.write("EP_avg_td_error: %f\n" % (np.mean(ep_td)))
         logger.write("EP_mean_reward: %f\n" % np.mean(ep_r))
         logger.write("EP_batch_reward: %f\n" % (np.sum(ep_r) / pa.batch_num))

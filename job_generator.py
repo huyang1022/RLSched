@@ -6,9 +6,8 @@ class JobGenerator(object):
     def __init__(self, pa):
         # type: (Parameter) -> object
         self.job_sequence = []
-        self.job_len = []
+        self.job_matrix = []
         self.total_len = 0.0
-        self.rate = 1.0 / pa.job_interval
 
         self.short_rate = 0.8
 
@@ -23,33 +22,65 @@ class JobGenerator(object):
         self.other_lower = 1
 
         np.random.seed(pa.job_seed)
+        if pa.dag_id != None:
+            dag_name = pa.dag_dict[pa.dag_id][0]
+            dag_file = open("./dag/%s" % dag_name, "r")
+            for line in dag_file.readlines():
+                self.job_matrix.append([int(x) for x in line.split()])
 
-        for k in xrange(pa.batch_num):
-            self.job_sequence.append([])
-            self.job_len.append(0.0)
-            for i in xrange(pa.job_num):
-                submission_time = np.random.randint(0, pa.batch_len)
-                if np.random.rand() <= self.short_rate:          # generate a short job
-                    duration = np.random.randint(self.short_lower, self.short_upper + 1)
-                else:
-                    duration = np.random.randint(self.long_lower, self.long_upper + 1)
-
-
-                donimant_res = np.random.randint(0, pa.res_num)
-                res_vec = []
-                for j in xrange(pa.res_num):
-                    if j == donimant_res:
-                        res_vec.append(np.random.randint(self.dominant_lower, self.dominant_upper + 1))
+            pa.job_num = pa.dag_dict[pa.dag_id][1]
+            for k in xrange(pa.batch_num):
+                self.job_sequence.append([])
+                for i in xrange(pa.job_num):
+                    if np.random.rand() <= self.short_rate:          # generate a short job
+                        duration = np.random.randint(self.short_lower, self.short_upper + 1)
                     else:
-                        res_vec.append(np.random.randint(self.other_lower, self.other_upper + 1))
+                        duration = np.random.randint(self.long_lower, self.long_upper + 1)
 
-                self.total_len += duration
-                self.job_len[k] += duration
-                self.job_sequence[k].append(Job(0, duration, pa.res_num, pa.res_slot, res_vec))
 
-            self.job_sequence[k].sort(key=lambda x: x.submission_time)
-            self.job_sequence[k].append(None)
+                    donimant_res = np.random.randint(0, pa.res_num)
+                    res_vec = []
+                    for j in xrange(pa.res_num):
+                        if j == donimant_res:
+                            res_vec.append(np.random.randint(self.dominant_lower, self.dominant_upper + 1))
+                        else:
+                            res_vec.append(np.random.randint(self.other_lower, self.other_upper + 1))
 
+                    self.total_len += duration
+                    self.job_sequence[k].append(Job(0, duration, pa.res_num, pa.res_slot, res_vec, i))
+
+
+            for k in xrange(pa.batch_num):
+                for i in xrange(pa.job_num):
+                    self.job_sequence[k][i].child_num, self.job_sequence[k][i].child_len = self.dfs(k, i)
+
+                self.job_sequence[k].sort(key=lambda x: (- x.child_len, - x.child_num, x.id))
+
+        elif pa.job_num != None:
+            for k in xrange(pa.batch_num):
+                self.job_sequence.append([])
+                for i in xrange(pa.job_num):
+                    submission_time = np.random.randint(0, pa.batch_len)
+                    if np.random.rand() <= self.short_rate:  # generate a short job
+                        duration = np.random.randint(self.short_lower, self.short_upper + 1)
+                    else:
+                        duration = np.random.randint(self.long_lower, self.long_upper + 1)
+
+                    donimant_res = np.random.randint(0, pa.res_num)
+                    res_vec = []
+                    for j in xrange(pa.res_num):
+                        if j == donimant_res:
+                            res_vec.append(np.random.randint(self.dominant_lower, self.dominant_upper + 1))
+                        else:
+                            res_vec.append(np.random.randint(self.other_lower, self.other_upper + 1))
+
+                    self.total_len += duration
+                    self.job_sequence[k].append(Job(0, duration, pa.res_num, pa.res_slot, res_vec, i))
+
+                self.job_sequence[k].sort(key=lambda x: x.submission_time)
+                self.job_sequence[k].append(None)
+
+        # self.rate = 1.0 / pa.job_interval
         # for i in xrange(pa.exp_len):
         #     if np.random.rand() <= self.rate:                    # generate a new job
         #         if np.random.rand() <= self.short_rate:          # generate a short job
@@ -78,3 +109,13 @@ class JobGenerator(object):
         # self.job_sequence.append(None)
 
 
+    def dfs(self, b_id, j_id):
+        ret_num = 0
+        ret_len = 0
+        for i in xrange(len(self.job_matrix[j_id])):
+            if self.job_matrix[j_id][i]:
+                p, q = self.dfs(b_id, i)
+                if q > ret_len:
+                    ret_num = p
+                    ret_len = q
+        return ret_num + 1, ret_len + self.job_sequence[b_id][j_id].duration

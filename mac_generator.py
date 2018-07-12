@@ -9,7 +9,7 @@ class MacGenerator(object):
         for i in xrange(pa.res_num):
             res_vec.append(pa.res_slot)
         for i in xrange(pa.mac_num):
-            self.mac_sequence.append(Machine(pa.res_num, pa.res_slot, res_vec))
+            self.mac_sequence.append(Machine(pa.res_num, pa.res_slot, res_vec, i))
 
         # mac_info = [[10, [25, 25]],
         #             [10, [50, 50]],
