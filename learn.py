@@ -21,12 +21,14 @@ if __name__ == '__main__':
     critic = Critic(sess, pa)
     sess.run(tf.global_variables_initializer())
 
-    writer = tf.summary.FileWriter(LOG_DIR, sess.graph)
-    saver = tf.train.Saver()
-    logger = open(LOG_FILE, "w")  # file to record the logs
-
     if not os.path.exists(MODEL_DIR):
         os.mkdir(MODEL_DIR)
+    if not os.path.exists(LOG_DIR):
+        os.mkdir(LOG_DIR)
+
+    # writer = tf.summary.FileWriter(LOG_DIR, sess.graph)
+    # saver = tf.train.Saver()
+    logger = open(LOG_FILE, "w")  # file to record the logs
 
     Machine.reset()
     Job.reset()

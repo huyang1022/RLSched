@@ -54,8 +54,11 @@ class Job(object):
         self.execution_time = -1
         self.status = "Pending"
         self.state = np.zeros([res_num, res_slot])
-        self.child_num = 1
-        self.child_len = duration
+
+        self.depth = 0
+        self.c_next = -1
+        self.c_len = 0
+        self.c_state = None
 
         assert len(res_vec) == res_num
         for i in xrange(res_num):

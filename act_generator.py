@@ -45,11 +45,13 @@ def get_id(env, alg_id):
                     ret_act = MOD * i + j
                     min_duration = env.jobs[i].duration
     elif alg_id % env.pa.alg_num == 2:     #cp
+        max_len = 0
         for i in xrange(job_n):
             for j in xrange(env.mac_count):
                 act = Action(env.jobs[i].id, env.macs[j].id)
-                if env.check_act(act) :
-                    return MOD * i + j
+                if env.check_act(act) and env.jobs[i].c_len > max_len:
+                    max_len = env.jobs[i].c_len
+                    ret_act = MOD * i + j
     return ret_act
 
 

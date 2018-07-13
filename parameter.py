@@ -23,14 +23,19 @@ class Parameter(object):
         self.job_max_len = 20                              # maximum duration of jobs
         self.job_max_slot = self.res_slot * 4 / 5         # maximum number of requested resource
         self.job_interval = None                            # average inter-arrival time
-        self.job_seed = 7                             # random seed for job generating
+        self.job_seed = 99                             # random seed for job generating
 
-        self.dag_id = 0                                 # id of dag
+        self.dag_id = 0                                # id of dag
         self.dag_dict = {                               # name of dag file and number of jobs
-            0: ["Epigenomics", 50],
-            1: ["CyberShake", 50],
-            2: ["Montage", 50],
+            0: ["Epigenomics_50", 50],
+            1: ["CyberShake_50", 50],
+            2: ["Montage_50", 50],
+            3: ["Epigenomics_100", 100],
+            4: ["CyberShake_100", 100],
+            5: ["Montage_100", 100],
+            6: ["test", 5]
         }
+        self.dag_max_depth = 10                         # max depth of a dag
 
         self.sched_num = 1                            # number of schedules at one time
         self.sched_flag = False                         # flag of job recycle

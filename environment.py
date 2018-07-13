@@ -121,19 +121,13 @@ class Environment(object):
                 for k in xrange(self.pa.res_slot):
                     ret = np.append(ret, np.ones(int(self.jobs[i].state[j][k])))
                     ret = np.append(ret, np.zeros(self.pa.job_max_len - int(self.jobs[i].state[j][k])))
-            chd_num = self.jobs[i].child_num
-            avg_len = self.jobs[i].child_len / chd_num
-            ret = np.append(ret, np.ones(chd_num))
-            ret = np.append(ret, np.zeros(self.pa.job_max_len - chd_num))
-            ret = np.append(ret, np.ones(avg_len))
-            ret = np.append(ret, np.zeros(self.pa.job_max_len - avg_len))
+            ret = np.append(ret, self.jobs[i].c_state)
 
         for i in xrange(self.pa.job_train_num - job_n):
             for j in xrange(self.pa.res_num):
                 for k in xrange(self.pa.res_slot):
                     ret = np.append(ret, np.zeros(self.pa.job_max_len))
-            ret = np.append(ret, np.zeros(self.pa.job_max_len))
-            ret = np.append(ret, np.zeros(self.pa.job_max_len))
+            ret = np.append(ret, np.zeros([self.pa.dag_max_depth, self.pa.job_max_len]))
 
         # time_n = max(0, self.current_time)
         # ret = np.append(ret, np.ones(time_n))

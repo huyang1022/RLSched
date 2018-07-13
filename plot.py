@@ -6,7 +6,7 @@ def read_data():
     ret_list = []
     in_file = open("log/rl_log","r")
     for i, line in enumerate(in_file.readlines()):
-        if i % 10 == 8:
+        if i % 11 == 9:
             ret_n = line.split()
             ret_list.append(float(ret_n[1]))
     return ret_list

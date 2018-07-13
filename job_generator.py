@@ -37,7 +37,6 @@ class JobGenerator(object):
                     else:
                         duration = np.random.randint(self.long_lower, self.long_upper + 1)
 
-
                     donimant_res = np.random.randint(0, pa.res_num)
                     res_vec = []
                     for j in xrange(pa.res_num):
@@ -52,9 +51,21 @@ class JobGenerator(object):
 
             for k in xrange(pa.batch_num):
                 for i in xrange(pa.job_num):
-                    self.job_sequence[k][i].child_num, self.job_sequence[k][i].child_len = self.dfs(k, i)
+                    self.job_sequence[k][i].depth, self.job_sequence[k][i].c_next, self.job_sequence[k][i].c_len  = self.dfs(k, i)
 
-                self.job_sequence[k].sort(key=lambda x: (- x.child_len, - x.child_num, x.id))
+            for k in xrange(pa.batch_num):
+                for i in xrange(pa.job_num):
+                    self.job_sequence[k][i].c_state = np.zeros([pa.dag_max_depth, pa.job_max_len])
+                    job = self.job_sequence[k][i]
+                    self.job_sequence[k][i].c_state[job.depth, :job.duration] = 1
+                    j = job.c_next
+                    while j != -1:
+                        job = self.job_sequence[k][j]
+                        self.job_sequence[k][i].c_state[job.depth, :job.duration] = 1
+                        j = job.c_next
+
+
+                self.job_sequence[k].sort(key=lambda x: (- x.depth, - x.c_len, x.id))
 
         elif pa.job_num != None:
             for k in xrange(pa.batch_num):
@@ -110,12 +121,16 @@ class JobGenerator(object):
 
 
     def dfs(self, b_id, j_id):
-        ret_num = 0
+        ret_depth = -1
+        ret_next = -1
         ret_len = 0
+
         for i in xrange(len(self.job_matrix[j_id])):
             if self.job_matrix[j_id][i]:
-                p, q = self.dfs(b_id, i)
-                if q > ret_len:
-                    ret_num = p
-                    ret_len = q
-        return ret_num + 1, ret_len + self.job_sequence[b_id][j_id].duration
+                n_depth, n_next, n_len = self.dfs(b_id, i)
+                if n_depth > ret_depth:
+                    ret_depth = n_depth
+                if n_len > ret_len:
+                    ret_len = n_len
+                    ret_next = i
+        return ret_depth + 1, ret_next, ret_len + self.job_sequence[b_id][j_id].duration
