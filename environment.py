@@ -103,40 +103,26 @@ class Environment(object):
         self.running_jobs[-1].start(self.current_time)
 
     def obs(self):
-        ret = np.array([], dtype="float32")
         mac_n = min(self.pa.mac_train_num, self.mac_count)
         job_n = min(self.pa.job_train_num, self.job_count)
+        m_obs = np.zeros([self.pa.mac_train_num, self.pa.res_num, self.pa.mac_max_slot, self.pa.job_max_len])
+        j_obs = np.zeros([self.pa.job_train_num, self.pa.res_num, self.pa.job_max_slot, self.pa.job_max_len])
+        d_obs = np.zeros([self.pa.job_train_num, self.pa.dag_max_depth * self.pa.job_max_len])
+
         for i in xrange(mac_n):
             for j in xrange(self.pa.res_num):
-                for k in xrange(self.pa.res_slot):
-                    ret = np.append(ret, np.ones(int(self.macs[i].state[j][k])))
-                    ret = np.append(ret, np.zeros(self.pa.job_max_len - int(self.macs[i].state[j][k])))
-        for i in xrange(self.pa.mac_train_num  - mac_n):
-            for j in xrange(self.pa.res_num):
-                for k in xrange(self.pa.res_slot):
-                    ret = np.append(ret, np.zeros(self.pa.job_max_len))
+                for k in xrange(self.pa.mac_max_slot):
+                    m_obs[i][j][k][:int(self.macs[i].state[j][k])] = 1
 
         for i in xrange(job_n):
             for j in xrange(self.pa.res_num):
-                for k in xrange(self.pa.res_slot):
-                    ret = np.append(ret, np.ones(int(self.jobs[i].state[j][k])))
-                    ret = np.append(ret, np.zeros(self.pa.job_max_len - int(self.jobs[i].state[j][k])))
-            ret = np.append(ret, self.jobs[i].c_state)
+                for k in xrange(self.pa.job_max_slot):
+                    j_obs[i][j][k][:int(self.jobs[i].state[j][k])] = 1
 
-        for i in xrange(self.pa.job_train_num - job_n):
-            for j in xrange(self.pa.res_num):
-                for k in xrange(self.pa.res_slot):
-                    ret = np.append(ret, np.zeros(self.pa.job_max_len))
-            ret = np.append(ret, np.zeros([self.pa.dag_max_depth, self.pa.job_max_len]))
+            d_obs[i][:self.jobs[i].depth] = 1
+            d_obs[i][self.pa.dag_max_depth:self.pa.dag_max_depth + self.jobs[i].c_len] = 1
 
-        # time_n = max(0, self.current_time)
-        # ret = np.append(ret, np.ones(time_n))
-        # ret = np.append(ret, np.zeros(self.pa.exp_len - time_n))
-        # ret = np.append(ret, np.ones(self.job_count))
-        # ret = np.append(ret, np.zeros(self.pa.job_num - self.job_count))
-        # ret = np.append(ret, np.ones(len(self.finished_jobs)))
-        # ret = np.append(ret, np.zeros(self.pa.job_num - len(self.finished_jobs)))
-        return ret
+        return np.concatenate((m_obs.flatten(), j_obs.flatten(), d_obs.flatten()))
 
     def reward(self):
         # return -self.job_count * 1.0 / self.pa.job_num

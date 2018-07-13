@@ -8,9 +8,12 @@ class Actor(object):
         # type: (tf.Session, Parameter) -> None
         self.sess =sess
         self.pa = pa
-        self.t_num = pa.mac_train_num + pa.job_train_num
-        self.r_num = pa.res_num * pa.res_slot * pa.job_max_len
-        self.s_dim = self.t_num * self.r_num + pa.job_train_num * pa.dag_max_depth * pa.job_max_len
+        m_num = pa.mac_train_num * pa.res_num * pa.mac_max_slot * pa.job_max_len
+        j_num = pa.job_train_num * pa.res_num * pa.job_max_slot * pa.job_max_len
+        d_num = pa.job_train_num * pa.dag_max_depth * pa.job_max_len
+        # self.t_num = pa.mac_train_num + pa.job_train_num
+        # self.r_num = pa.res_num * pa.res_slot * pa.job_max_len
+        self.s_dim = m_num + j_num + d_num
         self.a_dim =pa.mac_train_num * pa.job_train_num + 1
         self.l_r = pa.a_learn_rate
 
@@ -93,9 +96,12 @@ class Critic(object):
         # type: (tf.Session, Parameter) -> None
         self.sess = sess
         self.pa = pa
-        self.t_num = pa.mac_train_num + pa.job_train_num
-        self.r_num = pa.res_num * pa.res_slot * pa.job_max_len
-        self.s_dim = self.t_num * self.r_num + pa.job_train_num * pa.dag_max_depth * pa.job_max_len
+        m_num = pa.mac_train_num * pa.res_num * pa.mac_max_slot * pa.job_max_len
+        j_num = pa.job_train_num * pa.res_num * pa.job_max_slot * pa.job_max_len
+        d_num = pa.job_train_num * pa.dag_max_depth * pa.job_max_len
+        # self.t_num = pa.mac_train_num + pa.job_train_num
+        # self.r_num = pa.res_num * pa.res_slot * pa.job_max_len
+        self.s_dim = m_num + j_num + d_num
         self.a_dim =pa.mac_train_num * pa.job_train_num + 1
         self.l_r = pa.c_learn_rate
         with tf.variable_scope("Critic"):
