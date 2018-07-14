@@ -107,7 +107,7 @@ class Environment(object):
         job_n = min(self.pa.job_train_num, self.job_count)
         m_obs = np.zeros([self.pa.mac_train_num, self.pa.res_num, self.pa.mac_max_slot, self.pa.job_max_len])
         j_obs = np.zeros([self.pa.job_train_num, self.pa.res_num, self.pa.job_max_slot, self.pa.job_max_len])
-        d_obs = np.zeros([self.pa.job_train_num, self.pa.dag_max_depth * self.pa.job_max_len])
+        d_obs = np.zeros([self.pa.job_train_num, self.pa.dag_max_depth, self.pa.job_max_len])
 
         for i in xrange(mac_n):
             for j in xrange(self.pa.res_num):
@@ -119,8 +119,9 @@ class Environment(object):
                 for k in xrange(self.pa.job_max_slot):
                     j_obs[i][j][k][:int(self.jobs[i].state[j][k])] = 1
 
-            d_obs[i][:self.jobs[i].depth] = 1
-            d_obs[i][self.pa.dag_max_depth:self.pa.dag_max_depth + self.jobs[i].c_len] = 1
+            d_obs[i] = self.jobs[i].c_state
+            # d_obs[i][:self.jobs[i].depth] = 1
+            # d_obs[i][self.pa.dag_max_depth:self.pa.dag_max_depth + self.jobs[i].c_len] = 1
 
         return np.concatenate((m_obs.flatten(), j_obs.flatten(), d_obs.flatten()))
 

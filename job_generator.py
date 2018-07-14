@@ -53,17 +53,16 @@ class JobGenerator(object):
                 for i in xrange(pa.job_num):
                     self.job_sequence[k][i].depth, self.job_sequence[k][i].c_next, self.job_sequence[k][i].c_len  = self.dfs(k, i)
 
-            # for k in xrange(pa.batch_num):
-            #     for i in xrange(pa.job_num):
-            #         self.job_sequence[k][i].c_state = np.zeros(pa.dag_max_depth * pa.job_max_len)
-            #         self.job_sequence[k][i].c_state[:self.job_sequence[k][i].c_len] = 1
-                    # job = self.job_sequence[k][i]
-                    # self.job_sequence[k][i].c_state[job.depth, :job.duration] = 1
-                    # j = job.c_next
-                    # while j != -1:
-                    #     job = self.job_sequence[k][j]
-                    #     self.job_sequence[k][i].c_state[job.depth, :job.duration] = 1
-                    #     j = job.c_next
+            for k in xrange(pa.batch_num):
+                for i in xrange(pa.job_num):
+                    self.job_sequence[k][i].c_state = np.zeros([pa.dag_max_depth, pa.job_max_len])
+                    job = self.job_sequence[k][i]
+                    self.job_sequence[k][i].c_state[job.depth, :job.duration] = 1
+                    j = job.c_next
+                    while j != -1:
+                        job = self.job_sequence[k][j]
+                        self.job_sequence[k][i].c_state[job.depth, :job.duration] = 1
+                        j = job.c_next
 
 
                 # self.job_sequence[k].sort(key=lambda x: (- x.depth, - x.c_len, x.id))
