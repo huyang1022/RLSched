@@ -22,6 +22,8 @@ class Actor(object):
                 self.state = tf.placeholder(tf.float32, [None, self.s_dim], name = "state")
                 self.act = tf.placeholder(tf.int32, [None, 1], name = "act")
                 self.td_error = tf.placeholder(tf.float32, [None, 1], name = "td_error")
+
+
             with tf.variable_scope("Net"):
                 # l1_in = tf.reshape(self.state, [-1, self.t_num * pa.res_num, self.r_num, 1])                            #   x, y,  1
                 # c1_v1 = tf.layers.conv2d(l1_in, filters=16, kernel_size=[1, 10], strides=[1, 1], activation=tf.nn.relu6)    #   x,  y ,  10
@@ -34,7 +36,7 @@ class Actor(object):
                 # flat1 = tf.reshape(c1_v1, [-1, self.s_dim * 16])
                 # flat2 = tf.reshape(c2_v1, [-1, 16])
                 # l_con = tf.concat([flat1, flat2], 1)
-                l1 = tf.layers.dense(self.state, self.a_dim , tf.nn.relu6, name = "hidden_layer1")
+                l1 = tf.layers.dense(self.state, self.a_dim * 16, tf.nn.relu6, name = "hidden_layer1")
                 # l2 = tf.layers.dense(l1, self.a_dim * 32 , tf.nn.relu6, name = "hidden_layer2")
                 out = tf.layers.dense(l1, self.a_dim, tf.nn.softmax, name = "act_prob")
 
@@ -66,12 +68,22 @@ class Actor(object):
                 self.s_gradients = tf.gradients(self.s_loss, self.parameters)
                 self.s_update = s_opt.apply_gradients(zip(self.s_gradients, self.parameters))
 
+            self.input_parameters = []
+            for param in self.parameters:
+                self.input_parameters.append(
+                    tf.placeholder(tf.float32, shape=param.get_shape()))
+            self.set_ops = []
+            for idx, param in enumerate(self.input_parameters):
+                self.set_ops.append(self.parameters[idx].assign(param))
+
     def get_parameters(self):
         return self.sess.run(self.parameters)
 
     def set_parameters(self, parameters):
-        for i, p in enumerate(parameters):
-            self.sess.run(tf.assign(self.parameters[i], parameters[i]))
+        self.sess.run(self.set_ops, feed_dict={
+            i: d for i, d in zip(self.input_parameters, parameters)
+        })
+
 
     def s_train(self, state, act):
         feed_dict = {
@@ -128,7 +140,7 @@ class Critic(object):
                 # flat1 = tf.reshape(c1_v1, [-1, self.s_dim * 16])
                 # flat2 = tf.reshape(c2_v1, [-1, 16])
                 # l_con = tf.concat([flat1, flat2], 1)
-                l1 = tf.layers.dense(self.state, self.a_dim , tf.nn.relu6, name = "hidden_layer1")
+                l1 = tf.layers.dense(self.state, self.a_dim * 16, tf.nn.relu6, name = "hidden_layer1")
                 # l2 = tf.layers.dense(l1, self.a_dim * 32 , tf.nn.relu6, name = "hidden_layer2")
                 out = tf.layers.dense(l1, 1, name="value")
 
@@ -145,12 +157,22 @@ class Critic(object):
                 opt = tf.train.RMSPropOptimizer(self.l_r, name='RMSProp')
                 self.update = opt.apply_gradients(zip(self.gradients, self.parameters))
 
+            self.input_parameters = []
+            for param in self.parameters:
+                self.input_parameters.append(
+                    tf.placeholder(tf.float32, shape=param.get_shape()))
+            self.set_ops = []
+            for idx, param in enumerate(self.input_parameters):
+                self.set_ops.append(self.parameters[idx].assign(param))
+
     def get_parameters(self):
         return self.sess.run(self.parameters)
 
     def set_parameters(self, parameters):
-        for i, p in enumerate(parameters):
-            self.sess.run(tf.assign(self.parameters[i], parameters[i]))
+        self.sess.run(self.set_ops, feed_dict={
+            i: d for i, d in zip(self.input_parameters, parameters)
+        })
+
 
     def learn(self, state, value):
         feed_dict = {

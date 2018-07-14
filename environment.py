@@ -35,7 +35,7 @@ class Environment(object):
         del self.macs[:]
         del self.jobs[:]
         del self.running_jobs[:]
-        del self.finished_ids[:]
+        del self.finished_jobs[:]
         del self.finished_ids[:]
 
 

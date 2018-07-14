@@ -4,10 +4,10 @@ class Parameter(object):
 
         self.exp_epochs = 50000                          # number of training epochs
         self.exp_len = 400                             # maximum duration of one experiment
-        self.su_epochs = 1000                           # supervised training epochs
+        self.su_epochs = 0                           # supervised training epochs
 
         self.batch_len = 50                            # maximum duration of one batch
-        self.batch_num = 2                            # number of jobs in one batch
+        self.batch_num = 5                            # number of jobs in one batch
 
         self.res_num = 2                                # number of resources in the cluster
         self.res_slot = 10                            # maximum number of resource slots
@@ -49,7 +49,7 @@ class Parameter(object):
         self.discount_rate = 0.99                         # discount rate
         self.learn_step = 100                            # steps of update
         self.eps = 1e-10                                 # eps
-        self.entropy_rate = 0.01
+        self.entropy_rate = 0.0001
         self.save_step = 10                               # parameters save step
 
         # usage: job_max_len  / interval / mac_num / 10

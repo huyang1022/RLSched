@@ -95,7 +95,7 @@ def worker(batch_id, pa, net_queue, exp_queue):
     job_gen = JobGenerator(pa)
     env.job_gen = job_gen
     env.mac_gen = mac_gen
-    env.batch_id = batch_id
+
 
     for i in xrange(pa.exp_epochs):
         a_parameters, c_parameters = net_queue.get()
@@ -103,12 +103,12 @@ def worker(batch_id, pa, net_queue, exp_queue):
         critic.set_parameters(c_parameters)
         env.reset()
         env.add_cluster()
-
+        env.batch_id = batch_id
         state = env.obs()
         buffer_s, buffer_a, buffer_r, buffer_v, butter_w = [], [], [], [], []
         while True:
             if i < pa.su_epochs:
-                act_id = act_generator.get_id(env, 2)
+                act_id = act_generator.get_id(env, i)
             else:
                 act_id = actor.predict(state[np.newaxis, :])
             state_, reward, done, info = env.step_act(act_id)
