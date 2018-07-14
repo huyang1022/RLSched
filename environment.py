@@ -27,16 +27,17 @@ class Environment(object):
 
     def reset(self):
         self.current_time = -1
-        self.macs = []
         self.mac_count = 0
-        self.jobs = []
         self.job_count = 0
-        self.running_jobs = []
-        self.finished_jobs = []
-        self.finished_ids = []
         self.batch_id = 0
         self.job_gen_idx = 0
-        self.job_set = set()
+        self.job_set.clear()
+        del self.macs[:]
+        del self.jobs[:]
+        del self.running_jobs[:]
+        del self.finished_ids[:]
+        del self.finished_ids[:]
+
 
     def add_machine(self, mac):
         # type: (Machine) -> None
@@ -160,7 +161,6 @@ class Environment(object):
             ret_reward = 0.0
             ret_done = False
             ret_info = 0
-            ret_flag = 1
         else:
             self.step()
             for job in self.job_gen.job_sequence[self.batch_id]:
@@ -178,7 +178,6 @@ class Environment(object):
             #     self.job_gen_idx += 1
             #     job = self.job_gen.job_sequence[self.batch_id][self.job_gen_idx]
             ret_state = self.obs()
-            ret_flag = 0
             if len(self.finished_jobs) == self.pa.job_num:
                 ret_reward = 0.0
                 ret_info = 0
@@ -188,7 +187,7 @@ class Environment(object):
                 ret_info = 1
                 ret_done = False
 
-        return ret_state, ret_reward, ret_done, ret_info, ret_flag
+        return ret_state, ret_reward, ret_done, ret_info
 
     def get_usage(self, res_id):
         res_used = 0

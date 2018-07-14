@@ -4,10 +4,10 @@ class Parameter(object):
 
         self.exp_epochs = 50000                          # number of training epochs
         self.exp_len = 400                             # maximum duration of one experiment
-        self.su_epochs = 0                           # supervised training epochs
+        self.su_epochs = 1000                           # supervised training epochs
 
         self.batch_len = 50                            # maximum duration of one batch
-        self.batch_num = 5                            # number of jobs in one batch
+        self.batch_num = 2                            # number of jobs in one batch
 
         self.res_num = 2                                # number of resources in the cluster
         self.res_slot = 10                            # maximum number of resource slots

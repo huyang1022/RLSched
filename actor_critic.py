@@ -34,7 +34,7 @@ class Actor(object):
                 # flat1 = tf.reshape(c1_v1, [-1, self.s_dim * 16])
                 # flat2 = tf.reshape(c2_v1, [-1, 16])
                 # l_con = tf.concat([flat1, flat2], 1)
-                l1 = tf.layers.dense(self.state, self.a_dim * 32, tf.nn.relu6, name = "hidden_layer1")
+                l1 = tf.layers.dense(self.state, self.a_dim , tf.nn.relu6, name = "hidden_layer1")
                 # l2 = tf.layers.dense(l1, self.a_dim * 32 , tf.nn.relu6, name = "hidden_layer2")
                 out = tf.layers.dense(l1, self.a_dim, tf.nn.softmax, name = "act_prob")
 
@@ -65,6 +65,13 @@ class Actor(object):
                 s_opt = tf.train.RMSPropOptimizer(self.l_r, name='RMSProp')
                 self.s_gradients = tf.gradients(self.s_loss, self.parameters)
                 self.s_update = s_opt.apply_gradients(zip(self.s_gradients, self.parameters))
+
+    def get_parameters(self):
+        return self.sess.run(self.parameters)
+
+    def set_parameters(self, parameters):
+        for i, p in enumerate(parameters):
+            self.sess.run(tf.assign(self.parameters[i], parameters[i]))
 
     def s_train(self, state, act):
         feed_dict = {
@@ -121,7 +128,7 @@ class Critic(object):
                 # flat1 = tf.reshape(c1_v1, [-1, self.s_dim * 16])
                 # flat2 = tf.reshape(c2_v1, [-1, 16])
                 # l_con = tf.concat([flat1, flat2], 1)
-                l1 = tf.layers.dense(self.state, self.a_dim * 32, tf.nn.relu6, name = "hidden_layer1")
+                l1 = tf.layers.dense(self.state, self.a_dim , tf.nn.relu6, name = "hidden_layer1")
                 # l2 = tf.layers.dense(l1, self.a_dim * 32 , tf.nn.relu6, name = "hidden_layer2")
                 out = tf.layers.dense(l1, 1, name="value")
 
@@ -137,6 +144,13 @@ class Critic(object):
                 self.gradients = tf.gradients(self.loss, self.parameters)
                 opt = tf.train.RMSPropOptimizer(self.l_r, name='RMSProp')
                 self.update = opt.apply_gradients(zip(self.gradients, self.parameters))
+
+    def get_parameters(self):
+        return self.sess.run(self.parameters)
+
+    def set_parameters(self, parameters):
+        for i, p in enumerate(parameters):
+            self.sess.run(tf.assign(self.parameters[i], parameters[i]))
 
     def learn(self, state, value):
         feed_dict = {
