@@ -53,7 +53,7 @@ if __name__ == '__main__':
             buffer_s, buffer_a, buffer_r, buffer_v, butter_w, butter_a_n = [], [], [], [], [], []
             while True:
                 if i < pa.su_epochs:
-                    act_id = act_generator.get_id(env, 2)
+                    act_id = act_generator.get_id(env, i)
                 else:
                     act_id = actor.predict(state[np.newaxis, :])
                 state_, reward, done, info, flag = env.step_act(act_id)

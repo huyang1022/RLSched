@@ -34,7 +34,7 @@ class Actor(object):
                 # flat1 = tf.reshape(c1_v1, [-1, self.s_dim * 16])
                 # flat2 = tf.reshape(c2_v1, [-1, 16])
                 # l_con = tf.concat([flat1, flat2], 1)
-                l1 = tf.layers.dense(self.state, self.a_dim * 16, tf.nn.relu6, name = "hidden_layer1")
+                l1 = tf.layers.dense(self.state, self.a_dim * 32, tf.nn.relu6, name = "hidden_layer1")
                 # l2 = tf.layers.dense(l1, self.a_dim * 32 , tf.nn.relu6, name = "hidden_layer2")
                 out = tf.layers.dense(l1, self.a_dim, tf.nn.softmax, name = "act_prob")
 
@@ -121,7 +121,7 @@ class Critic(object):
                 # flat1 = tf.reshape(c1_v1, [-1, self.s_dim * 16])
                 # flat2 = tf.reshape(c2_v1, [-1, 16])
                 # l_con = tf.concat([flat1, flat2], 1)
-                l1 = tf.layers.dense(self.state, self.a_dim * 16, tf.nn.relu6, name = "hidden_layer1")
+                l1 = tf.layers.dense(self.state, self.a_dim * 32, tf.nn.relu6, name = "hidden_layer1")
                 # l2 = tf.layers.dense(l1, self.a_dim * 32 , tf.nn.relu6, name = "hidden_layer2")
                 out = tf.layers.dense(l1, 1, name="value")
 

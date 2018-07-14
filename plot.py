@@ -48,8 +48,8 @@ def run():
     # plt.savefig("test.eps" , bbox_inches='tight', form='eps', dpi=1200)
     x = read_data()
     print min(x)
-    plt.axhline(y=14, linewidth=5, color='k', alpha=0.5)
-    plt.plot(x, linewidth=5, color='#B22400')
+    # plt.axhline(y=14, linewidth=5, color='k', alpha=0.5)
+    plt.plot(x, linewidth=1, color='#B22400')
     plt.show()
 
 if __name__ == "__main__":
