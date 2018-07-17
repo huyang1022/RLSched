@@ -9,7 +9,7 @@ class JobGenerator(object):
         self.job_matrix = []
         self.total_len = 0.0
 
-        self.short_rate = 0.5
+        self.short_rate = 0.8
 
         self.long_upper = pa.job_max_len
         self.long_lower = pa.job_max_len  / 2

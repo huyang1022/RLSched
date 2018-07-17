@@ -36,7 +36,7 @@ class Actor(object):
                 # flat1 = tf.reshape(c1_v1, [-1, self.s_dim * 16])
                 # flat2 = tf.reshape(c2_v1, [-1, 16])
                 # l_con = tf.concat([flat1, flat2], 1)
-                l1 = tf.layers.dense(self.state, self.a_dim * 16, tf.nn.relu6, name = "hidden_layer1")
+                l1 = tf.layers.dense(self.state, self.a_dim * 32, tf.nn.relu6, name = "hidden_layer1")
                 # l2 = tf.layers.dense(l1, self.a_dim * 32 , tf.nn.relu6, name = "hidden_layer2")
                 out = tf.layers.dense(l1, self.a_dim, tf.nn.softmax, name = "act_prob")
 
@@ -54,6 +54,7 @@ class Actor(object):
 
 
             with tf.variable_scope('Train'):
+                # opt = tf.train.AdamOptimizer(self.l_r, name="Adam")
                 opt = tf.train.RMSPropOptimizer(self.l_r, name='RMSProp')
                 self.gradients = tf.gradients(self.loss, self.parameters)
                 self.update = opt.apply_gradients(zip(self.gradients, self.parameters))
@@ -84,8 +85,30 @@ class Actor(object):
             i: d for i, d in zip(self.input_parameters, parameters)
         })
 
+    def update_parameters(self, gradients):
+        return self.sess.run(self.update, feed_dict={
+            i: d for i, d in zip(self.gradients, gradients)
+        })
 
-    def s_train(self, state, act):
+    def get_gradients(self, state, act, td_error):
+        feed_dict = {
+            self.state: state,
+            self.act: act,
+            self.td_error: td_error
+        }
+        ret_entropy, ret_loss , ret_gradients = self.sess.run([self.entropy, self.loss, self.gradients], feed_dict)
+        return ret_entropy, ret_loss, ret_gradients
+
+    def get_s_gradients(self, state, act):
+        feed_dict = {
+            self.state: state,
+            self.act: act,
+        }
+        ret_entropy, ret_loss , ret_gradients = self.sess.run([self.s_entropy, self.s_loss, self.s_gradients], feed_dict)
+        return ret_entropy, ret_loss, ret_gradients
+
+
+    def s_learn(self, state, act):
         feed_dict = {
             self.state: state,
             self.act: act
@@ -140,7 +163,7 @@ class Critic(object):
                 # flat1 = tf.reshape(c1_v1, [-1, self.s_dim * 16])
                 # flat2 = tf.reshape(c2_v1, [-1, 16])
                 # l_con = tf.concat([flat1, flat2], 1)
-                l1 = tf.layers.dense(self.state, self.a_dim * 16, tf.nn.relu6, name = "hidden_layer1")
+                l1 = tf.layers.dense(self.state, self.a_dim * 32, tf.nn.relu6, name = "hidden_layer1")
                 # l2 = tf.layers.dense(l1, self.a_dim * 32 , tf.nn.relu6, name = "hidden_layer2")
                 out = tf.layers.dense(l1, 1, name="value")
 
@@ -153,8 +176,9 @@ class Critic(object):
 
 
             with tf.variable_scope('Train'):
-                self.gradients = tf.gradients(self.loss, self.parameters)
+                # opt = tf.train.AdamOptimizer(self.l_r, name="Adam")
                 opt = tf.train.RMSPropOptimizer(self.l_r, name='RMSProp')
+                self.gradients = tf.gradients(self.loss, self.parameters)
                 self.update = opt.apply_gradients(zip(self.gradients, self.parameters))
 
             self.input_parameters = []
@@ -172,6 +196,20 @@ class Critic(object):
         self.sess.run(self.set_ops, feed_dict={
             i: d for i, d in zip(self.input_parameters, parameters)
         })
+
+    def update_parameters(self, gradients):
+        return self.sess.run(self.update, feed_dict={
+            i: d for i, d in zip(self.gradients, gradients)
+        })
+
+    def get_gradients(self, state, value):
+        feed_dict = {
+            self.state: state,
+            self.value_target: value
+        }
+        ret_td , ret_loss, ret_gradients = self.sess.run([self.td_error, self.loss, self.gradients], feed_dict)
+        return ret_td, ret_loss, ret_gradients
+
 
 
     def learn(self, state, value):

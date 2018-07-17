@@ -3,7 +3,7 @@ class Parameter(object):
     def __init__(self):
 
         self.exp_epochs = 50000                          # number of training epochs
-        self.exp_len = 400                             # maximum duration of one experiment
+        self.exp_len = 500                             # maximum duration of one experiment
         self.su_epochs = 0                           # supervised training epochs
 
         self.batch_len = 50                            # maximum duration of one batch
@@ -47,9 +47,9 @@ class Parameter(object):
         self.a_learn_rate = 0.0001                         # actor learning rate
         self.c_learn_rate = 0.001                         # critic learning rate
         self.discount_rate = 0.99                         # discount rate
-        self.learn_step = 100                            # steps of update
+        self.learn_step = 30                            # steps of update
         self.eps = 1e-10                                 # eps
-        self.entropy_rate = 0.0001
+        self.entropy_rate = 0.03
         self.save_step = 10                               # parameters save step
 
         # usage: job_max_len  / interval / mac_num / 10

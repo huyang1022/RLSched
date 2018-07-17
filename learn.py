@@ -9,6 +9,7 @@ from actor_critic import Actor, Critic
 import os
 import plot
 import multiprocessing as mp
+import time
 
 LOG_DIR = "./log"
 LOG_FILE = LOG_DIR + "/rl_log"
@@ -19,6 +20,7 @@ def master(pa, net_queues, exp_queues):
     actor = Actor(sess, pa)
     critic = Critic(sess, pa)
     sess.run(tf.global_variables_initializer())
+    s_time = time.time()
 
     # writer = tf.summary.FileWriter(LOG_DIR, sess.graph)
     # saver = tf.train.Saver()
@@ -42,16 +44,26 @@ def master(pa, net_queues, exp_queues):
 
         print "================", "Train EP", i, "================"
         ep_td, ep_c_loss, ep_a_loss, ep_a_entropy = [], [], [], []
+        ep_a_gradients, ep_c_gradients =[], []
         for j in xrange(pa.batch_num):
-            td_error, critic_loss = critic.learn(ep_s[j], ep_v[j])
+            # td_error, c_loss = critic.learn(ep_s[j], ep_v[j])
+            td_error, c_loss, c_gradients = critic.get_gradients(ep_s[j], ep_v[j])
             if i < pa.su_epochs:
-                actor_entropy, actor_loss = actor.s_train(ep_s[j], ep_a[j])
+                # a_entropy, a_loss = actor.s_learn(ep_s[j], ep_a[j])
+                a_entropy, a_loss, a_gradients = actor.get_s_gradients(ep_s[j], ep_a[j])
             else:
-                actor_entropy, actor_loss = actor.learn(ep_s[j], ep_a[j], td_error)
+                # a_entropy, a_loss = actor.learn(ep_s[j], ep_a[j], td_error)
+                a_entropy, a_loss, a_gradients = actor.get_gradients(ep_s[j], ep_a[j], td_error)
+            ep_a_gradients.append(a_gradients)
+            ep_c_gradients.append(c_gradients)
             ep_td.append(td_error)
-            ep_c_loss.append(critic_loss)
-            ep_a_loss.append(actor_loss)
-            ep_a_entropy.append(actor_entropy)
+            ep_c_loss.append(c_loss)
+            ep_a_loss.append(a_loss)
+            ep_a_entropy.append(a_entropy)
+
+        for j in xrange(pa.batch_num):
+            actor.update_parameters(ep_a_gradients[j])
+            critic.update_parameters(ep_c_gradients[j])
 
         ep_td = np.concatenate(ep_td)
         ep_c_loss = np.array(ep_c_loss)
@@ -67,8 +79,8 @@ def master(pa, net_queues, exp_queues):
             "EP_avg_a_loss: ", np.mean(ep_a_loss), "\n", \
             "EP_avg_a_entropy: ", np.mean(ep_a_entropy), "\n", \
             "EP_avg_td_error: ", np.mean(ep_td), "\n", \
-            "EP_mean_reward: ", np.mean(ep_r), "\n", \
-            "EP_batch_reward: ", np.sum(ep_r) / pa.batch_num, "\n", \
+            "EP_avg_reward: ", np.mean(ep_r), "\n", \
+            "EP_train_time: ", time.time() - s_time, "\n", \
             "EP_avg_makespan: ", plt_data[-1], "\n"
 
         logger.write("EP: %d\n" % i)
@@ -77,12 +89,12 @@ def master(pa, net_queues, exp_queues):
         logger.write("EP_avg_a_loss: %f\n" % np.mean(ep_a_loss))
         logger.write("EP_avg_a_entropy: %f\n" % np.mean(ep_a_entropy))
         logger.write("EP_avg_td_error: %f\n" % (np.mean(ep_td)))
-        logger.write("EP_mean_reward: %f\n" % np.mean(ep_r))
-        logger.write("EP_batch_reward: %f\n" % (np.sum(ep_r) / pa.batch_num))
+        logger.write("EP_avg_reward: %f\n" % np.mean(ep_r))
+        logger.write("EP_train_time: %f\n" % (time.time() - s_time))
         logger.write("EP_avg_jmakespan: %f\n\n" % plt_data[-1])
         logger.flush()
 
-    plot.run()
+    # plot.run()
 
 
 def worker(batch_id, pa, net_queue, exp_queue):
@@ -96,11 +108,11 @@ def worker(batch_id, pa, net_queue, exp_queue):
     env.job_gen = job_gen
     env.mac_gen = mac_gen
 
-
+    a_parameters, c_parameters = net_queue.get()
+    actor.set_parameters(a_parameters)
+    critic.set_parameters(c_parameters)
     for i in xrange(pa.exp_epochs):
-        a_parameters, c_parameters = net_queue.get()
-        actor.set_parameters(a_parameters)
-        critic.set_parameters(c_parameters)
+
         env.reset()
         env.add_cluster()
         env.batch_id = batch_id
@@ -108,7 +120,7 @@ def worker(batch_id, pa, net_queue, exp_queue):
         buffer_s, buffer_a, buffer_r, buffer_v, butter_w = [], [], [], [], []
         while True:
             if i < pa.su_epochs:
-                act_id = act_generator.get_id(env, i)
+                act_id = act_generator.get_id(env, 2)
             else:
                 act_id = actor.predict(state[np.newaxis, :])
             state_, reward, done, info = env.step_act(act_id)
@@ -122,17 +134,21 @@ def worker(batch_id, pa, net_queue, exp_queue):
                 if done:
                     value = 0
                 else:
-                    value = len(env.finished_jobs) - pa.job_num
+                    value = - pa.job_num
                 for r in buffer_r[::-1]:
                     value = r + pa.discount_rate * value
                     buffer_v.append(value)
                 buffer_v.reverse()
 
                 buffer_s, buffer_a, buffer_v = np.vstack(buffer_s), np.vstack(buffer_a), np.vstack(buffer_v)
+                exp_queue.put([buffer_s, buffer_a, buffer_r, buffer_v, butter_w])
+                a_parameters, c_parameters = net_queue.get()
+                actor.set_parameters(a_parameters)
+                critic.set_parameters(c_parameters)
                 break
             state = state_
 
-        exp_queue.put([buffer_s, buffer_a, buffer_r, buffer_v, butter_w])
+
 
 
 
