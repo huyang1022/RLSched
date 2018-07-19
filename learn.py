@@ -7,7 +7,7 @@ import tensorflow as tf
 import numpy as np
 from actor_critic import Actor, Critic
 import os
-import plot
+# import plot
 import multiprocessing as mp
 import time
 
@@ -44,26 +44,26 @@ def master(pa, net_queues, exp_queues):
 
         print "================", "Train EP", i, "================"
         ep_td, ep_c_loss, ep_a_loss, ep_a_entropy = [], [], [], []
-        ep_a_gradients, ep_c_gradients =[], []
+        # ep_a_gradients, ep_c_gradients =[], []
         for j in xrange(pa.batch_num):
-            # td_error, c_loss = critic.learn(ep_s[j], ep_v[j])
-            td_error, c_loss, c_gradients = critic.get_gradients(ep_s[j], ep_v[j])
+            td_error, c_loss = critic.learn(ep_s[j], ep_v[j])
+            # td_error, c_loss, c_gradients = critic.get_gradients(ep_s[j], ep_v[j])
             if i < pa.su_epochs:
-                # a_entropy, a_loss = actor.s_learn(ep_s[j], ep_a[j])
-                a_entropy, a_loss, a_gradients = actor.get_s_gradients(ep_s[j], ep_a[j])
+                a_entropy, a_loss = actor.s_learn(ep_s[j], ep_a[j])
+                # a_entropy, a_loss, a_gradients = actor.get_s_gradients(ep_s[j], ep_a[j])
             else:
-                # a_entropy, a_loss = actor.learn(ep_s[j], ep_a[j], td_error)
-                a_entropy, a_loss, a_gradients = actor.get_gradients(ep_s[j], ep_a[j], td_error)
-            ep_a_gradients.append(a_gradients)
-            ep_c_gradients.append(c_gradients)
+                a_entropy, a_loss = actor.learn(ep_s[j], ep_a[j], td_error)
+                # a_entropy, a_loss, a_gradients = actor.get_gradients(ep_s[j], ep_a[j], td_error)
+            # ep_a_gradients.append(a_gradients)
+            # ep_c_gradients.append(c_gradients)
             ep_td.append(td_error)
             ep_c_loss.append(c_loss)
             ep_a_loss.append(a_loss)
             ep_a_entropy.append(a_entropy)
 
-        for j in xrange(pa.batch_num):
-            actor.update_parameters(ep_a_gradients[j])
-            critic.update_parameters(ep_c_gradients[j])
+        # for j in xrange(pa.batch_num):
+        #     actor.update_parameters(ep_a_gradients[j])
+        #     critic.update_parameters(ep_c_gradients[j])
 
         ep_td = np.concatenate(ep_td)
         ep_c_loss = np.array(ep_c_loss)
@@ -108,11 +108,11 @@ def worker(batch_id, pa, net_queue, exp_queue):
     env.job_gen = job_gen
     env.mac_gen = mac_gen
 
-    a_parameters, c_parameters = net_queue.get()
-    actor.set_parameters(a_parameters)
-    critic.set_parameters(c_parameters)
-    for i in xrange(pa.exp_epochs):
 
+    for i in xrange(pa.exp_epochs):
+        a_parameters, c_parameters = net_queue.get()
+        actor.set_parameters(a_parameters)
+        critic.set_parameters(c_parameters)
         env.reset()
         env.add_cluster()
         env.batch_id = batch_id
@@ -142,9 +142,6 @@ def worker(batch_id, pa, net_queue, exp_queue):
 
                 buffer_s, buffer_a, buffer_v = np.vstack(buffer_s), np.vstack(buffer_a), np.vstack(buffer_v)
                 exp_queue.put([buffer_s, buffer_a, buffer_r, buffer_v, butter_w])
-                a_parameters, c_parameters = net_queue.get()
-                actor.set_parameters(a_parameters)
-                critic.set_parameters(c_parameters)
                 break
             state = state_
 

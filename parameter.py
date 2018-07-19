@@ -49,7 +49,7 @@ class Parameter(object):
         self.discount_rate = 0.99                         # discount rate
         self.learn_step = 30                            # steps of update
         self.eps = 1e-10                                 # eps
-        self.entropy_rate = 0.03
+        self.entropy_rate = 0.02
         self.save_step = 10                               # parameters save step
 
         # usage: job_max_len  / interval / mac_num / 10
