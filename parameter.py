@@ -54,7 +54,7 @@ class Parameter(object):
         self.learn_step = 30                            # steps of update
         self.eps = 1e-10                                 # eps
         self.entropy_rate = 0.03
-        self.save_step = 10                               # parameters save step
+        self.save_step = 1000                               # parameters save step
         self.test_flag = False                             # flag of test
 
         # usage: job_max_len  / interval / mac_num / 10

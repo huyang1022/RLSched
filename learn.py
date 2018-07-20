@@ -23,7 +23,7 @@ def master(pa, net_queues, exp_queues):
     s_time = time.time()
 
     # writer = tf.summary.FileWriter(LOG_DIR, sess.graph)
-    # saver = tf.train.Saver()
+    saver = tf.train.Saver()
     logger = open(LOG_FILE, "w")  # file to record the logs
     plt_avg_data = []
     plt_min_data = []
@@ -114,6 +114,8 @@ def master(pa, net_queues, exp_queues):
         logger.write("EP_test_makespan: %f\n\n" % plt_test_data[-1])
         logger.flush()
 
+        if (i + 1) % pa.save_step == 0:
+            saver.save(sess, "%s/%d.ckpt" % (MODEL_DIR, (i + 1)))
     # plot.run()
 
 
