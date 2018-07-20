@@ -25,8 +25,11 @@ def master(pa, net_queues, exp_queues):
     # writer = tf.summary.FileWriter(LOG_DIR, sess.graph)
     # saver = tf.train.Saver()
     logger = open(LOG_FILE, "w")  # file to record the logs
-    plt_train_data = []
+    plt_avg_data = []
+    plt_min_data = []
+    plt_max_data = []
     plt_test_data = []
+
     for i in xrange(pa.exp_epochs):
         print "================", "Start EP", i, "================"
         a_parameters = actor.get_parameters()
@@ -36,18 +39,17 @@ def master(pa, net_queues, exp_queues):
             if pa.test_flag:
                 net_queues[j + pa.batch_num].put([a_parameters, c_parameters])
 
-        ep_s, ep_a, ep_r, ep_v, ep_train_w, ep_test_w = [], [], [], [], [], []
+        ep_s, ep_a, ep_v, ep_train_w, ep_test_w = [], [], [], [], []
         for j in xrange(pa.batch_num):
-            buffer_s, buffer_a, buffer_r, buffer_v, butter_w = exp_queues[j].get()
+            buffer_s, buffer_a, buffer_v, butter_w = exp_queues[j].get()
             ep_s.append(buffer_s)
             ep_a.append(buffer_a)
             ep_v.append(buffer_v)
-            ep_r.extend(buffer_r)
-            ep_train_w.extend(butter_w)
+            ep_train_w.append(np.sum(butter_w))
 
             if pa.test_flag:
                 butter_test_w = exp_queues[j + pa.batch_num].get()
-                ep_test_w.extend(butter_test_w)
+                ep_test_w.append(np.sum(butter_test_w))
 
         print "================", "Train EP", i, "================"
         ep_td, ep_c_loss, ep_a_loss, ep_a_entropy = [], [], [], []
@@ -77,8 +79,14 @@ def master(pa, net_queues, exp_queues):
         ep_a_loss = np.array(ep_a_loss)
         ep_a_entropy = np.array(ep_a_entropy)
 
-        plt_train_data.append(np.sum(ep_train_w) *1.0 /pa.batch_num)
-        plt_test_data.append(np.sum(ep_test_w) *1.0 /pa.batch_num)
+        plt_avg_data.append(float(np.mean(ep_train_w)))
+        plt_min_data.append(np.min(ep_train_w))
+        plt_max_data.append(np.max(ep_train_w))
+        if pa.test_flag:
+            plt_test_data.append(float(np.mean(ep_test_w)))
+        else:
+            plt_test_data.append(0.0)
+
 
         print \
             "EP:", i, "\n", \
@@ -87,9 +95,10 @@ def master(pa, net_queues, exp_queues):
             "EP_avg_a_loss: ", np.mean(ep_a_loss), "\n", \
             "EP_avg_a_entropy: ", np.mean(ep_a_entropy), "\n", \
             "EP_avg_td_error: ", np.mean(ep_td), "\n", \
-            "EP_avg_reward: ", np.mean(ep_r), "\n", \
             "EP_train_time: ", time.time() - s_time, "\n", \
-            "EP_train_makespan: ", plt_train_data[-1], "\n", \
+            "EP_avg_makespan: ", plt_avg_data[-1], "\n", \
+            "EP_min_makespan: ", plt_min_data[-1], "\n", \
+            "EP_max_makespan: ", plt_max_data[-1], "\n", \
             "EP_test_makespan: ", plt_test_data[-1], "\n"
 
         logger.write("EP: %d\n" % i)
@@ -98,9 +107,10 @@ def master(pa, net_queues, exp_queues):
         logger.write("EP_avg_a_loss: %f\n" % np.mean(ep_a_loss))
         logger.write("EP_avg_a_entropy: %f\n" % np.mean(ep_a_entropy))
         logger.write("EP_avg_td_error: %f\n" % (np.mean(ep_td)))
-        logger.write("EP_avg_reward: %f\n" % np.mean(ep_r))
         logger.write("EP_train_time: %f\n" % (time.time() - s_time))
-        logger.write("EP_train_makespan: %f\n" % plt_train_data[-1])
+        logger.write("EP_avg_makespan: %f\n" % plt_avg_data[-1])
+        logger.write("EP_min_makespan: %f\n" % plt_min_data[-1])
+        logger.write("EP_max_makespan: %f\n" % plt_max_data[-1])
         logger.write("EP_test_makespan: %f\n\n" % plt_test_data[-1])
         logger.flush()
 
@@ -151,7 +161,7 @@ def worker(batch_id, pa, net_queue, exp_queue):
                 buffer_v.reverse()
 
                 buffer_s, buffer_a, buffer_v = np.vstack(buffer_s), np.vstack(buffer_a), np.vstack(buffer_v)
-                exp_queue.put([buffer_s, buffer_a, buffer_r, buffer_v, butter_w])
+                exp_queue.put([buffer_s, buffer_a, buffer_v, butter_w])
                 break
             state = state_
 

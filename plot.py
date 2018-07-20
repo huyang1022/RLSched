@@ -11,7 +11,7 @@ def read_data():
     for i, line in enumerate(in_file.readlines()):
         ret_n = line.split()
         if len(ret_n) > 0 :
-            if ret_n[0] == "EP_avg_makespan:" or ret_n[0] == "EP_train_makespan:":
+            if ret_n[0] == "EP_avg_makespan:":
                 ret_n = float(ret_n[1])
                 ret_train_min = min(ret_n, ret_train_min)
                 if len(ret_train_list) == 0:
