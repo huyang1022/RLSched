@@ -3,19 +3,29 @@ import matplotlib.pyplot as plt
 
 
 def read_data():
-    ret_list = []
-    ret_min = 1e10
+    ret_train_list = []
+    ret_train_min = 1e10
+    ret_test_list = []
+    ret_test_min = 1e10
     in_file = open("log/rl_log","r")
     for i, line in enumerate(in_file.readlines()):
-        if i % 10 == 8:
-            ret_n = line.split()
-            ret_n = float(ret_n[1])
-            ret_min = min(ret_n, ret_min)
-            if len(ret_list) == 0:
-                ret_list.append(ret_n)
-            else:
-                ret_list.append(ret_list[-1] * 0.99 + 0.01 * ret_n)
-    return ret_list, ret_min
+        ret_n = line.split()
+        if len(ret_n) > 0 :
+            if ret_n[0] == "EP_avg_makespan:" or ret_n[0] == "EP_train_makespan:":
+                ret_n = float(ret_n[1])
+                ret_train_min = min(ret_n, ret_train_min)
+                if len(ret_train_list) == 0:
+                    ret_train_list.append(ret_n)
+                else:
+                    ret_train_list.append(ret_train_list[-1] * 0.99 + 0.01 * ret_n)
+            elif ret_n[0] == "EP_test_makespan:":
+                ret_n = float(ret_n[1])
+                ret_test_min = min(ret_n, ret_test_min)
+                if len(ret_test_list) == 0:
+                    ret_test_list.append(ret_n)
+                else:
+                    ret_test_list.append(ret_test_list[-1] * 0.99 + 0.01 * ret_n)
+    return ret_train_list, ret_train_min, ret_test_list, ret_test_min
 
 
 def run():
@@ -52,13 +62,14 @@ def run():
     # plt.axvline(x=1, linewidth=5, color='k', alpha=0.4)
     # plt.legend(["ECSched-dp vs. Swarm", "ECSched-ml vs. Swarm"], loc = "best")
     # plt.savefig("test.eps" , bbox_inches='tight', form='eps', dpi=1200)
-    x, y = read_data()
-    print y
+    x, y, x1, y1 = read_data()
+    print y, y1
     # plt.axhline(y=104.0, linewidth=5, color='k', alpha=0.9)
     # plt.axhline(y=113.4, linewidth=5, color='g', alpha=0.9)
     # plt.axhline(y=103.4, linewidth=5, color='b', alpha=0.9)
     plt.plot(x, linewidth=5, color='#B22400')
-    # plt.legend(["pack","shortest task first","critical path first","reinforcement learning"])
+    plt.plot(x1,linewidth=5, color='#006BB2')
+    plt.legend(["train","test"])
     plt.show()
 
 if __name__ == "__main__":

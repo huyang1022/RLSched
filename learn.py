@@ -25,22 +25,29 @@ def master(pa, net_queues, exp_queues):
     # writer = tf.summary.FileWriter(LOG_DIR, sess.graph)
     # saver = tf.train.Saver()
     logger = open(LOG_FILE, "w")  # file to record the logs
-    plt_data = []
+    plt_train_data = []
+    plt_test_data = []
     for i in xrange(pa.exp_epochs):
         print "================", "Start EP", i, "================"
         a_parameters = actor.get_parameters()
         c_parameters = critic.get_parameters()
         for j in xrange(pa.batch_num):
             net_queues[j].put([a_parameters, c_parameters])
+            if pa.test_flag:
+                net_queues[j + pa.batch_num].put([a_parameters, c_parameters])
 
-        ep_s, ep_a, ep_r, ep_v, ep_w = [], [], [], [], []
+        ep_s, ep_a, ep_r, ep_v, ep_train_w, ep_test_w = [], [], [], [], [], []
         for j in xrange(pa.batch_num):
             buffer_s, buffer_a, buffer_r, buffer_v, butter_w = exp_queues[j].get()
             ep_s.append(buffer_s)
             ep_a.append(buffer_a)
             ep_v.append(buffer_v)
             ep_r.extend(buffer_r)
-            ep_w.extend(butter_w)
+            ep_train_w.extend(butter_w)
+
+            if pa.test_flag:
+                butter_test_w = exp_queues[j + pa.batch_num].get()
+                ep_test_w.extend(butter_test_w)
 
         print "================", "Train EP", i, "================"
         ep_td, ep_c_loss, ep_a_loss, ep_a_entropy = [], [], [], []
@@ -70,7 +77,8 @@ def master(pa, net_queues, exp_queues):
         ep_a_loss = np.array(ep_a_loss)
         ep_a_entropy = np.array(ep_a_entropy)
 
-        plt_data.append(np.sum(ep_w) *1.0 /pa.batch_num)
+        plt_train_data.append(np.sum(ep_train_w) *1.0 /pa.batch_num)
+        plt_test_data.append(np.sum(ep_test_w) *1.0 /pa.batch_num)
 
         print \
             "EP:", i, "\n", \
@@ -81,7 +89,8 @@ def master(pa, net_queues, exp_queues):
             "EP_avg_td_error: ", np.mean(ep_td), "\n", \
             "EP_avg_reward: ", np.mean(ep_r), "\n", \
             "EP_train_time: ", time.time() - s_time, "\n", \
-            "EP_avg_makespan: ", plt_data[-1], "\n"
+            "EP_train_makespan: ", plt_train_data[-1], "\n", \
+            "EP_test_makespan: ", plt_test_data[-1], "\n"
 
         logger.write("EP: %d\n" % i)
         logger.write("Batch Number: %d\n" % pa.batch_num)
@@ -91,7 +100,8 @@ def master(pa, net_queues, exp_queues):
         logger.write("EP_avg_td_error: %f\n" % (np.mean(ep_td)))
         logger.write("EP_avg_reward: %f\n" % np.mean(ep_r))
         logger.write("EP_train_time: %f\n" % (time.time() - s_time))
-        logger.write("EP_avg_jmakespan: %f\n\n" % plt_data[-1])
+        logger.write("EP_train_makespan: %f\n" % plt_train_data[-1])
+        logger.write("EP_test_makespan: %f\n\n" % plt_test_data[-1])
         logger.flush()
 
     # plot.run()
@@ -120,7 +130,7 @@ def worker(batch_id, pa, net_queue, exp_queue):
         buffer_s, buffer_a, buffer_r, buffer_v, butter_w = [], [], [], [], []
         while True:
             if i < pa.su_epochs:
-                act_id = act_generator.get_id(env, 2)
+                act_id = act_generator.get_id(env, i)
             else:
                 act_id = actor.predict(state[np.newaxis, :])
             state_, reward, done, info = env.step_act(act_id)
@@ -147,7 +157,37 @@ def worker(batch_id, pa, net_queue, exp_queue):
 
 
 
+def tester(batch_id, pa, net_queue, exp_queue):
+    sess = tf.Session()
+    actor = Actor(sess, pa)
+    critic = Critic(sess, pa)
 
+    env = Environment(pa)
+    mac_gen = MacGenerator(pa)
+    job_gen = JobGenerator(pa)
+    env.job_gen = job_gen
+    env.mac_gen = mac_gen
+    for i in xrange(pa.exp_epochs):
+        a_parameters, c_parameters = net_queue.get()
+        actor.set_parameters(a_parameters)
+        critic.set_parameters(c_parameters)
+        env.reset()
+        env.add_cluster()
+        env.batch_id = batch_id
+        state = env.obs()
+        butter_w = []
+        while True:
+            if i < pa.su_epochs:
+                act_id = act_generator.get_id(env, i)
+            else:
+                act_id = actor.predict(state[np.newaxis, :])
+            state_, reward, done, info = env.step_act(act_id)
+            butter_w.append(info)
+
+            if done or env.current_time >= pa.exp_len:
+                exp_queue.put(butter_w)
+                break
+            state = state_
 
 def main():
     if not os.path.exists(MODEL_DIR):
@@ -162,6 +202,9 @@ def main():
     for i in xrange(pa.batch_num):
         net_queues.append(mp.Queue(1))
         exp_queues.append(mp.Queue(1))
+        if pa.test_flag:
+            net_queues.append(mp.Queue(1))
+            exp_queues.append(mp.Queue(1))
 
     coordinator = mp.Process(target=master,
                              args=(pa, net_queues, exp_queues))
@@ -171,9 +214,18 @@ def main():
     for i in xrange(pa.batch_num):
         workers.append(mp.Process(target=worker,
                                   args=(i, pa, net_queues[i], exp_queues[i])))
-
     for i in xrange(pa.batch_num):
         workers[i].start()
+
+    if pa.test_flag:
+        testers = []
+        for i in xrange(pa.batch_num):
+            testers.append(mp.Process(target=tester,
+                                  args=(pa.batch_num + i, pa, net_queues[pa.batch_num + i], exp_queues[pa.batch_num + i])))
+        for i in xrange(pa.batch_num):
+            testers[i].start()
+
+
 
     coordinator.join()
 

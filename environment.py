@@ -73,8 +73,9 @@ class Environment(object):
         return False
 
     def check_parent(self, job_id):
+        dag_id = self.job_gen.job_dag_id[self.batch_id]
         for i in xrange(self.pa.job_num):
-            if self.job_gen.job_matrix[i][job_id]:
+            if self.job_gen.dag_matrix[dag_id][i][job_id]:
                 if i not in self.finished_ids:
                     return False
         return True
