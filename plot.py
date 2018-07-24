@@ -68,7 +68,7 @@ def run():
     # plt.axhline(y=113.4, linewidth=5, color='g', alpha=0.9)
     # plt.axhline(y=103.4, linewidth=5, color='b', alpha=0.9)
     plt.plot(x, linewidth=5, color='#B22400')
-    # plt.plot(x1,linewidth=5, color='#006BB2')
+    plt.plot(x1,linewidth=5, color='#006BB2')
     plt.legend(["train","test"])
     plt.show()
 
