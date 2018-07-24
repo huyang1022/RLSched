@@ -41,12 +41,7 @@ class JobGenerator(object):
 
         if pa.dag_id != None:
             for k in xrange(self.batch_num):
-                if pa.dag_id == 6:
-                    self.job_dag_id.append(k % 3)
-                elif pa.dag_id == 7:
-                    self.job_dag_id.append(k % 3 + 3)
-                else:
-                    self.job_dag_id.append(pa.dag_id)
+                self.job_dag_id.append(pa.dag_id)
 
                 self.job_sequence.append([])
                 for i in xrange(pa.job_num):

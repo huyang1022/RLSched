@@ -25,7 +25,7 @@ class Parameter(object):
         self.job_interval = None                            # average inter-arrival time
         self.job_seed = 7                             # random seed for job generating
 
-        self.dag_num = 6                                # number of dag
+        self.dag_num = 9                                # number of dag
         self.dag_id = 6                                # id of dag
         self.dag_dict = {                               # name of dag file and number of jobs
             0: ["Epigenomics_50", 50],
@@ -34,8 +34,12 @@ class Parameter(object):
             3: ["Epigenomics_100", 100],
             4: ["CyberShake_100", 100],
             5: ["Montage_100", 100],
-            6: ["mix_50", 50],
-            7: ["mix_100", 100]
+            6: ["Epigenomics_20", 20],
+            7: ["CyberShake_20", 20],
+            8: ["LIGO_20", 20],
+            9: ["mix_50", 50],
+            10: ["mix_100", 100]
+
         }
         self.dag_max_depth = 10                         # max depth of a dag
 
