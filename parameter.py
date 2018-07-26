@@ -4,25 +4,25 @@ class Parameter(object):
 
         self.exp_epochs = 50000                          # number of training epochs
         self.exp_len = 500                             # maximum duration of one experiment
-        self.su_epochs = 100                           # supervised training epochs
+        self.su_epochs = 0                           # supervised training epochs
 
-        self.worker_num = 16                            # number of agents
+        self.worker_num = 10                            # number of agents
         self.batch_len = 50                            # maximum duration of one batch
-        self.batch_num = self.worker_num * 8                            # number batches
+        self.batch_num = self.worker_num * 1                            # number batches
 
         self.res_num = 2                                # number of resources in the cluster
         self.res_slot = 10                            # maximum number of resource slots
 
         self.mac_num = 2                               # number of machines in the cluster
-        self.mac_train_num = self.mac_num               # number of trained machines
-        self.mac_max_slot = self.res_slot               # maximum number of resource slots of machine
+        self.mac_train_num = 2                         # number of trained machines
+        self.mac_max_slot = 10                         # maximum number of resource slots of machine
 
 
         self.job_num = 50                               # number of jobs in one batch
         self.job_train_num = 5                          # number of trained jobs
         self.job_queue_num = 10000                        # maximum number of jobs in the queue
-        self.job_max_len = 20                              # maximum duration of jobs
-        self.job_max_slot = self.res_slot * 4 / 5         # maximum number of requested resource
+        self.job_max_len = 10                              # maximum duration of jobs
+        self.job_max_slot = 8                          # maximum number of requested resource
         self.job_interval = None                            # average inter-arrival time
         self.job_seed = 7                             # random seed for job generating
 
@@ -35,14 +35,14 @@ class Parameter(object):
             3: ["Epigenomics_100", 100],
             4: ["CyberShake_100", 100],
             5: ["Montage_100", 100],
-            6: ["Epigenomics_20", 20],
-            7: ["CyberShake_20", 20],
-            8: ["LIGO_20", 20],
+            6: ["Epigenomics_24", 24],
+            7: ["CyberShake_24", 24],
+            8: ["LIGO_24", 24],
             9: ["mix_50", 50],
             10: ["mix_100", 100]
 
         }
-        self.dag_max_depth = 10                         # max depth of a dag
+        self.dag_max_depth = 8                         # max depth of a dag
 
         if self.dag_id != None:
             self.job_num = self.dag_dict[self.dag_id][1]
@@ -59,7 +59,7 @@ class Parameter(object):
         self.discount_rate = 0.99                         # discount rate
         self.learn_step = 30                            # steps of update
         self.eps = 1e-10                                 # eps
-        self.entropy_rate = 0.05
+        self.entropy_rate = 0.03
         self.save_step = 1000                               # parameters save step
         self.test_flag = True                             # flag of test
 

@@ -12,15 +12,26 @@ class JobGenerator(object):
 
         self.short_rate = 0.8
 
+        # self.long_upper = pa.job_max_len
+        # self.long_lower = pa.job_max_len  / 2 + 1
+        # self.short_upper = pa.job_max_len / 2
+        # self.short_lower = 1
         self.long_upper = pa.job_max_len
-        self.long_lower = pa.job_max_len  / 2
-        self.short_upper = pa.job_max_len / 4
+        self.long_lower = 1
+        self.short_upper = pa.job_max_len
         self.short_lower = 1
 
+
+        # self.dominant_upper = pa.job_max_slot
+        # self.dominant_lower = pa.job_max_slot / 2 + 1
+        # self.other_upper = pa.job_max_slot / 2
+        # self.other_lower = 1
+
         self.dominant_upper = pa.job_max_slot
-        self.dominant_lower = pa.job_max_slot / 2
-        self.other_upper = pa.job_max_slot / 4
+        self.dominant_lower = 1
+        self.other_upper = pa.job_max_slot
         self.other_lower = 1
+
 
         if pa.test_flag:
             self.batch_num = pa.batch_num * 2

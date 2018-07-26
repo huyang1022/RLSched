@@ -4,7 +4,6 @@ import sys
 
 def run(env, act_id):
     MOD = env.pa.mac_train_num
-    # return sjf1(env)
     if act_id  == env.pa.mac_train_num * env.pa.job_train_num: return  None
     mac_idx = act_id % MOD
     job_idx = act_id // MOD
@@ -52,6 +51,9 @@ def get_id(env, alg_id):
                 if env.check_act(act) and env.jobs[i].c_len > max_len:
                     max_len = env.jobs[i].c_len
                     ret_act = MOD * i + j
+                # elif env.jobs[i].c_len > max_len:
+                #     max_len = env.jobs[i].c_len
+                #     ret_act = MOD * i + j
     return ret_act
 
 
