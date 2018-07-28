@@ -32,10 +32,38 @@ def get_id(env, alg_id):
                     for k in xrange(env.pa.res_num):
                         res_avail = (env.macs[j].state[k] == 0)
                         score += res_avail.sum() * env.jobs[i].res_vec[k]
+                        # score += env.jobs[i].res_vec[k] * 1.0 / res_avail.sum()
                     if score > max_score:
                         max_score = score
                         ret_act = MOD * i + j
+
     elif alg_id % env.pa.alg_num == 1:  #sjf
+        min_duration = sys.maxint
+        idx = 0
+        for i in xrange(job_n):
+            if env.jobs[i].duration < min_duration:
+                min_duration = env.jobs[i].duration
+                idx = i
+        for j in xrange(env.mac_count):
+            act = Action(env.jobs[idx].id, env.macs[j].id)
+            if env.check_act(act):
+                ret_act = MOD * idx + j
+                break
+
+    elif alg_id % env.pa.alg_num == 2:     #cp
+        max_len = 0
+        idx = 0
+        for i in xrange(job_n):
+            if env.jobs[i].c_len > max_len:
+                max_len = env.jobs[i].c_len
+                idx = i
+        for j in xrange(env.mac_count):
+            act = Action(env.jobs[idx].id, env.macs[j].id)
+            if env.check_act(act):
+                ret_act = MOD * idx + j
+                break
+
+    elif alg_id % env.pa.alg_num == 3:  #sjf
         min_duration = sys.maxint
         for i in xrange(job_n):
             for j in xrange(env.mac_count):
@@ -43,7 +71,8 @@ def get_id(env, alg_id):
                 if env.check_act(act) and env.jobs[i].duration < min_duration:
                     ret_act = MOD * i + j
                     min_duration = env.jobs[i].duration
-    elif alg_id % env.pa.alg_num == 2:     #cp
+
+    elif alg_id % env.pa.alg_num == 4:     #cp
         max_len = 0
         for i in xrange(job_n):
             for j in xrange(env.mac_count):
@@ -51,9 +80,7 @@ def get_id(env, alg_id):
                 if env.check_act(act) and env.jobs[i].c_len > max_len:
                     max_len = env.jobs[i].c_len
                     ret_act = MOD * i + j
-                # elif env.jobs[i].c_len > max_len:
-                #     max_len = env.jobs[i].c_len
-                #     ret_act = MOD * i + j
+
     return ret_act
 
 

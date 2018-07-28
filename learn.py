@@ -30,10 +30,13 @@ def master(pa, net_queues, exp_queues):
 
     for i in xrange(pa.exp_epochs):
         print "================", "Start EP", i, "================"
-        a_parameters = actor.get_parameters()
-        c_parameters = critic.get_parameters()
-        ep_s, ep_a, ep_v, ep_train_w, ep_test_w = [], [], [], [], []
+        ep_train_w, ep_test_w = [], []
+        ep_td, ep_c_loss, ep_a_loss, ep_a_entropy = [], [], [], []
         for j in xrange(pa.batch_num / pa.worker_num):
+            ep_s, ep_a, ep_v= [], [], []
+            a_parameters = actor.get_parameters()
+            c_parameters = critic.get_parameters()
+
             for k in xrange(pa.worker_num):
                 train_id = j * pa.worker_num + k
                 test_id = train_id + pa.batch_num
@@ -52,29 +55,27 @@ def master(pa, net_queues, exp_queues):
                     butter_test_w = exp_queues[k + pa.worker_num].get()
                     ep_test_w.append(np.sum(butter_test_w))
 
-        print "================", "Train EP", i, "================"
-        ep_td, ep_c_loss, ep_a_loss, ep_a_entropy = [], [], [], []
-        # ep_a_gradients, ep_c_gradients =[], []
-        for j in xrange(pa.batch_num):
-            td_error, c_loss = critic.learn(ep_s[j], ep_v[j])
-            # td_error, c_loss, c_gradients = critic.get_gradients(ep_s[j], ep_v[j])
-            if i < pa.su_epochs:
-                a_entropy, a_loss = actor.s_learn(ep_s[j], ep_a[j])
-                # a_entropy, a_loss, a_gradients = actor.get_s_gradients(ep_s[j], ep_a[j])
-            else:
-                a_entropy, a_loss = actor.learn(ep_s[j], ep_a[j], td_error)
-                # a_entropy, a_loss, a_gradients = actor.get_gradients(ep_s[j], ep_a[j], td_error)
-            # ep_a_gradients.append(a_gradients)
-            # ep_c_gradients.append(c_gradients)
-            ep_td.append(td_error)
-            ep_c_loss.append(c_loss)
-            ep_a_loss.append(a_loss)
-            ep_a_entropy.append(a_entropy)
+            # ep_a_gradients, ep_c_gradients =[], []
+            for k in xrange(pa.worker_num):
+                td_error, c_loss = critic.learn(ep_s[k], ep_v[k])
+                # td_error, c_loss, c_gradients = critic.get_gradients(ep_s[j], ep_v[j])
+                if i < pa.su_epochs:
+                    a_entropy, a_loss = actor.s_learn(ep_s[k], ep_a[k])
+                    # a_entropy, a_loss, a_gradients = actor.get_s_gradients(ep_s[j], ep_a[j])
+                else:
+                    a_entropy, a_loss = actor.learn(ep_s[k], ep_a[k], td_error)
+                    # a_entropy, a_loss, a_gradients = actor.get_gradients(ep_s[j], ep_a[j], td_error)
+                # ep_a_gradients.append(a_gradients)
+                # ep_c_gradients.append(c_gradients)
+                ep_td.append(td_error)
+                ep_c_loss.append(c_loss)
+                ep_a_loss.append(a_loss)
+                ep_a_entropy.append(a_entropy)
 
         # for j in xrange(pa.batch_num):
         #     actor.update_parameters(ep_a_gradients[j])
         #     critic.update_parameters(ep_c_gradients[j])
-
+        print "================", "Train EP", i, "================"
         ep_td = np.concatenate(ep_td)
         ep_c_loss = np.array(ep_c_loss)
         ep_a_loss = np.array(ep_a_loss)

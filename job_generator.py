@@ -11,7 +11,7 @@ class JobGenerator(object):
         self.total_len = 0.0
 
         self.short_rate = 0.8
-
+        #
         # self.long_upper = pa.job_max_len
         # self.long_lower = pa.job_max_len  / 2 + 1
         # self.short_upper = pa.job_max_len / 2
@@ -27,9 +27,9 @@ class JobGenerator(object):
         # self.other_upper = pa.job_max_slot / 2
         # self.other_lower = 1
 
-        self.dominant_upper = pa.job_max_slot
+        self.dominant_upper = pa.job_max_slot / 2
         self.dominant_lower = 1
-        self.other_upper = pa.job_max_slot
+        self.other_upper = pa.job_max_slot / 2
         self.other_lower = 1
 
 
