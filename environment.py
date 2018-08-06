@@ -98,8 +98,10 @@ class Environment(object):
         mac_index = [x.id for x in self.macs].index(act.mac_id)
         for i in xrange(self.pa.res_num):
             res_avail = (self.macs[mac_index].state[i] == 0)
-            assert res_avail.sum() >= self.jobs[job_index].res_vec[i]
             self.macs[mac_index].state[i, res_avail] = self.jobs[job_index].state[i, :res_avail.sum()]
+
+        self.macs[mac_index].state = np.sort(self.macs[mac_index].state, 1)
+        self.macs[mac_index].state = np.flip(self.macs[mac_index].state, 1)
 
         self.running_jobs.append(self.jobs[job_index])
         self.running_jobs[-1].start(self.current_time)

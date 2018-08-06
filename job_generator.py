@@ -10,7 +10,7 @@ class JobGenerator(object):
         self.dag_matrix = []
         self.total_len = 0.0
 
-        self.short_rate = 0.8
+        self.short_rate = 0.5
         #
         # self.long_upper = pa.job_max_len
         # self.long_lower = pa.job_max_len  / 2 + 1
@@ -27,9 +27,9 @@ class JobGenerator(object):
         # self.other_upper = pa.job_max_slot / 2
         # self.other_lower = 1
 
-        self.dominant_upper = pa.job_max_slot / 2
+        self.dominant_upper = pa.job_max_slot
         self.dominant_lower = 1
-        self.other_upper = pa.job_max_slot / 2
+        self.other_upper = pa.job_max_slot
         self.other_lower = 1
 
 
@@ -38,9 +38,8 @@ class JobGenerator(object):
         else:
             self.batch_num = pa.batch_num
 
-
-
         np.random.seed(pa.job_seed)
+
         for i in xrange(pa.dag_num):
             self.dag_matrix.append([])
             dag_name = pa.dag_dict[i][0]
@@ -52,7 +51,10 @@ class JobGenerator(object):
 
         if pa.dag_id != None:
             for k in xrange(self.batch_num):
-                self.job_dag_id.append(pa.dag_id)
+                if pa.dag_id == 9:
+                    self.job_dag_id.append((k % 3) + 6)
+                else:
+                    self.job_dag_id.append(pa.dag_id)
 
                 self.job_sequence.append([])
                 for i in xrange(pa.job_num):

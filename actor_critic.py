@@ -36,9 +36,10 @@ class Actor(object):
                 # flat1 = tf.reshape(c1_v1, [-1, self.s_dim * 16])
                 # flat2 = tf.reshape(c2_v1, [-1, 16])
                 # l_con = tf.concat([flat1, flat2], 1)
-                l1 = tf.layers.dense(self.state, self.a_dim * 32, tf.nn.relu6, name = "hidden_layer1")
-                # l2 = tf.layers.dense(l1, self.a_dim * 32 , tf.nn.relu6, name = "hidden_layer2")
-                out = tf.layers.dense(l1, self.a_dim, tf.nn.softmax, name = "act_prob")
+                l1 = tf.layers.dense(self.state, self.a_dim * 16, tf.nn.relu6, name = "hidden_layer1")
+                l2 = tf.layers.dense(l1, self.a_dim * 16 , tf.nn.relu6, name = "hidden_layer2")
+                # l2 = tf.layers.dropout(l1, 0.1)
+                out = tf.layers.dense(l2, self.a_dim, tf.nn.softmax, name = "act_prob")
 
                 self.act_prob = out
                 self.parameters = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope = "Actor/Net")
@@ -54,10 +55,10 @@ class Actor(object):
 
 
             with tf.variable_scope('Train'):
-                # opt = tf.train.AdamOptimizer(self.l_r, name="Adam")
-                opt = tf.train.RMSPropOptimizer(self.l_r, name='RMSProp')
+                # op = tf.train.AdamOptimizer(self.l_r, name="Adam")
+                op = tf.train.RMSPropOptimizer(self.l_r, name='RMSProp')
                 self.gradients = tf.gradients(self.loss, self.parameters)
-                self.update = opt.apply_gradients(zip(self.gradients, self.parameters))
+                self.update = op.apply_gradients(zip(self.gradients, self.parameters))
 
             with tf.variable_scope("S_Loss"):
                 s_error = tf.subtract(self.act_prob, tf.squeeze(tf.one_hot(self.act, self.a_dim)))
@@ -65,14 +66,15 @@ class Actor(object):
                 self.s_loss = tf.reduce_sum(tf.square(s_error))
 
             with tf.variable_scope('S_Train'):
-                s_opt = tf.train.RMSPropOptimizer(self.l_r, name='RMSProp')
+                s_op = tf.train.RMSPropOptimizer(self.l_r, name='RMSProp')
                 self.s_gradients = tf.gradients(self.s_loss, self.parameters)
-                self.s_update = s_opt.apply_gradients(zip(self.s_gradients, self.parameters))
+                self.s_update = s_op.apply_gradients(zip(self.s_gradients, self.parameters))
 
             self.input_parameters = []
             for param in self.parameters:
                 self.input_parameters.append(
                     tf.placeholder(tf.float32, shape=param.get_shape()))
+
             self.set_ops = []
             for idx, param in enumerate(self.input_parameters):
                 self.set_ops.append(self.parameters[idx].assign(param))
@@ -163,9 +165,9 @@ class Critic(object):
                 # flat1 = tf.reshape(c1_v1, [-1, self.s_dim * 16])
                 # flat2 = tf.reshape(c2_v1, [-1, 16])
                 # l_con = tf.concat([flat1, flat2], 1)
-                l1 = tf.layers.dense(self.state, self.a_dim * 32, tf.nn.relu6, name = "hidden_layer1")
-                # l2 = tf.layers.dense(l1, self.a_dim * 32 , tf.nn.relu6, name = "hidden_layer2")
-                out = tf.layers.dense(l1, 1, name="value")
+                l1 = tf.layers.dense(self.state, self.a_dim * 16, tf.nn.relu6, name = "hidden_layer1")
+                l2 = tf.layers.dense(l1, self.a_dim * 16 , tf.nn.relu6, name = "hidden_layer2")
+                out = tf.layers.dense(l2, 1, name="value")
 
                 self.value = out
                 self.parameters = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope = "Critic/Net")
@@ -176,10 +178,10 @@ class Critic(object):
 
 
             with tf.variable_scope('Train'):
-                # opt = tf.train.AdamOptimizer(self.l_r, name="Adam")
-                opt = tf.train.RMSPropOptimizer(self.l_r, name='RMSProp')
+                # op = tf.train.AdamOptimizer(self.l_r, name="Adam")
+                op = tf.train.RMSPropOptimizer(self.l_r, name='RMSProp')
                 self.gradients = tf.gradients(self.loss, self.parameters)
-                self.update = opt.apply_gradients(zip(self.gradients, self.parameters))
+                self.update = op.apply_gradients(zip(self.gradients, self.parameters))
 
             self.input_parameters = []
             for param in self.parameters:
