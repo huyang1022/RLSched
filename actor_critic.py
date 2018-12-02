@@ -11,8 +11,6 @@ class Actor(object):
         m_num = pa.mac_train_num * pa.res_num * pa.mac_max_slot * pa.job_max_len
         j_num = pa.job_train_num * pa.res_num * pa.job_max_slot * pa.job_max_len
         d_num = pa.job_train_num * pa.dag_max_depth * pa.job_max_len
-        # self.t_num = pa.mac_train_num + pa.job_train_num
-        # self.r_num = pa.res_num * pa.res_slot * pa.job_max_len
         self.s_dim = m_num + j_num + d_num
         self.a_dim =pa.mac_train_num * pa.job_train_num + 1
         self.l_r = pa.a_learn_rate
@@ -25,21 +23,19 @@ class Actor(object):
 
 
             with tf.variable_scope("Net"):
-                l_m = tf.reshape(self.state[:, :m_num], [-1, pa.mac_train_num * pa.res_num * pa.mac_max_slot, pa.job_max_len, 1])
-                l_j = tf.reshape(self.state[:, m_num:j_num+m_num], [-1, pa.job_train_num * pa.res_num * pa.job_max_slot, pa.job_max_len, 1])
-                l_d = tf.reshape(self.state[:, j_num+m_num:], [-1,  pa.job_train_num * pa.dag_max_depth, pa.job_max_len, 1])
-                c_m = tf.layers.conv2d(l_m, filters=32, kernel_size=[pa.mac_max_slot, pa.job_max_len], strides=[pa.mac_max_slot, pa.job_max_len], activation=tf.nn.relu6)
-                c_j = tf.layers.conv2d(l_j, filters=32, kernel_size=[pa.job_max_slot, pa.job_max_len], strides=[pa.job_max_slot, pa.job_max_len], activation=tf.nn.relu6)
-                c_d = tf.layers.conv2d(l_d, filters=32, kernel_size=[pa.dag_max_depth, pa.job_max_len], strides=[pa.dag_max_depth, pa.job_max_len], activation=tf.nn.relu6)
-                f_m = tf.reshape(c_m, [-1, pa.mac_train_num * pa.res_num * 32])
-                f_j = tf.reshape(c_j, [-1, pa.job_train_num * pa.res_num * 32])
-                f_d = tf.reshape(c_d, [-1, pa.job_train_num * 32])
-                l_con = tf.concat([f_m, f_j, f_d], 1)
-                l1 = tf.layers.dense(l_con, 256, tf.nn.relu6, name = "hidden_layer1")
-                # pool1 = tf.layers.average_pooling2d(c1_v2, pool_size = [1, 2], strides=[1,1])                                   #   x, y/10, 32
-                # l2 = tf.layers.dense(l1, self.a_dim * 16 , tf.nn.relu6, name = "hidden_layer2")
-                # l2 = tf.layers.dropout(l1, 0.1)
-                out = tf.layers.dense(l1, self.a_dim, tf.nn.softmax, name = "act_prob")
+                # l_m = tf.reshape(self.state[:, :m_num], [-1, pa.mac_train_num * pa.res_num * pa.mac_max_slot, pa.job_max_len, 1])
+                # l_j = tf.reshape(self.state[:, m_num:j_num+m_num], [-1, pa.job_train_num * pa.res_num * pa.job_max_slot, pa.job_max_len, 1])
+                # l_d = tf.reshape(self.state[:, j_num+m_num:], [-1,  pa.job_train_num * pa.dag_max_depth, pa.job_max_len, 1])
+                # c_m = tf.layers.conv2d(l_m, filters=32, kernel_size=[pa.mac_max_slot, pa.job_max_len], strides=[pa.mac_max_slot, pa.job_max_len], activation=tf.nn.relu6)
+                # c_j = tf.layers.conv2d(l_j, filters=32, kernel_size=[pa.job_max_slot, pa.job_max_len], strides=[pa.job_max_slot, pa.job_max_len], activation=tf.nn.relu6)
+                # c_d = tf.layers.conv2d(l_d, filters=32, kernel_size=[pa.dag_max_depth, pa.job_max_len], strides=[pa.dag_max_depth, pa.job_max_len], activation=tf.nn.relu6)
+                # f_m = tf.reshape(c_m, [-1, pa.mac_train_num * pa.res_num * 32])
+                # f_j = tf.reshape(c_j, [-1, pa.job_train_num * pa.res_num * 32])
+                # f_d = tf.reshape(c_d, [-1, pa.job_train_num * 32])
+                # l_con = tf.concat([f_m, f_j, f_d], 1)
+                l1 = tf.layers.dense(self.state, 1024, tf.nn.relu6, name = "hidden_layer1")
+                l2 = tf.layers.dense(l1, 1024 , tf.nn.relu6, name = "hidden_layer2")
+                out = tf.layers.dense(l2, self.a_dim, tf.nn.softmax, name = "act_prob")
 
                 self.act_prob = out
                 self.parameters = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope = "Actor/Net")
@@ -143,8 +139,6 @@ class Critic(object):
         m_num = pa.mac_train_num * pa.res_num * pa.mac_max_slot * pa.job_max_len
         j_num = pa.job_train_num * pa.res_num * pa.job_max_slot * pa.job_max_len
         d_num = pa.job_train_num * pa.dag_max_depth * pa.job_max_len
-        # self.t_num = pa.mac_train_num + pa.job_train_num
-        # self.r_num = pa.res_num * pa.res_slot * pa.job_max_len
         self.s_dim = m_num + j_num + d_num
         self.a_dim =pa.mac_train_num * pa.job_train_num + 1
         self.l_r = pa.c_learn_rate
@@ -154,21 +148,19 @@ class Critic(object):
                 self.value_target = tf.placeholder(tf.float32, [None, 1], name = "value")
 
             with tf.variable_scope("Net"):
-                l_m = tf.reshape(self.state[:, :m_num], [-1, pa.mac_train_num * pa.res_num * pa.mac_max_slot, pa.job_max_len, 1])
-                l_j = tf.reshape(self.state[:, m_num:j_num+m_num], [-1, pa.job_train_num * pa.res_num * pa.job_max_slot, pa.job_max_len, 1])
-                l_d = tf.reshape(self.state[:, j_num+m_num:], [-1,  pa.job_train_num * pa.dag_max_depth, pa.job_max_len, 1])
-                c_m = tf.layers.conv2d(l_m, filters=32, kernel_size=[pa.mac_max_slot, pa.job_max_len], strides=[pa.mac_max_slot, pa.job_max_len], activation=tf.nn.relu6)
-                c_j = tf.layers.conv2d(l_j, filters=32, kernel_size=[pa.job_max_slot, pa.job_max_len], strides=[pa.job_max_slot, pa.job_max_len], activation=tf.nn.relu6)
-                c_d = tf.layers.conv2d(l_d, filters=32, kernel_size=[pa.dag_max_depth, pa.job_max_len], strides=[pa.dag_max_depth, pa.job_max_len], activation=tf.nn.relu6)
-                f_m = tf.reshape(c_m, [-1, pa.mac_train_num * pa.res_num * 32])
-                f_j = tf.reshape(c_j, [-1, pa.job_train_num * pa.res_num * 32])
-                f_d = tf.reshape(c_d, [-1, pa.job_train_num * 32])
-                l_con = tf.concat([f_m, f_j, f_d], 1)
-                l1 = tf.layers.dense(l_con, 256, tf.nn.relu6, name = "hidden_layer1")
-
-                # pool1 = tf.layers.average_pooling2d(c1_v2, pool_size = [1, 2], strides=[1,1])                                   #   x, y/10, 32
-                # l2 = tf.layers.dense(l1, self.a_dim * 16 , tf.nn.relu6, name = "hidden_layer2")
-                out = tf.layers.dense(l1, 1, name="value")
+                # l_m = tf.reshape(self.state[:, :m_num], [-1, pa.mac_train_num * pa.res_num * pa.mac_max_slot, pa.job_max_len, 1])
+                # l_j = tf.reshape(self.state[:, m_num:j_num+m_num], [-1, pa.job_train_num * pa.res_num * pa.job_max_slot, pa.job_max_len, 1])
+                # l_d = tf.reshape(self.state[:, j_num+m_num:], [-1,  pa.job_train_num * pa.dag_max_depth, pa.job_max_len, 1])
+                # c_m = tf.layers.conv2d(l_m, filters=32, kernel_size=[pa.mac_max_slot, pa.job_max_len], strides=[pa.mac_max_slot, pa.job_max_len], activation=tf.nn.relu6)
+                # c_j = tf.layers.conv2d(l_j, filters=32, kernel_size=[pa.job_max_slot, pa.job_max_len], strides=[pa.job_max_slot, pa.job_max_len], activation=tf.nn.relu6)
+                # c_d = tf.layers.conv2d(l_d, filters=32, kernel_size=[pa.dag_max_depth, pa.job_max_len], strides=[pa.dag_max_depth, pa.job_max_len], activation=tf.nn.relu6)
+                # f_m = tf.reshape(c_m, [-1, pa.mac_train_num * pa.res_num * 32])
+                # f_j = tf.reshape(c_j, [-1, pa.job_train_num * pa.res_num * 32])
+                # f_d = tf.reshape(c_d, [-1, pa.job_train_num * 32])
+                # l_con = tf.concat([f_m, f_j, f_d], 1)
+                l1 = tf.layers.dense(self.state, 1024, tf.nn.relu6, name = "hidden_layer1")
+                l2 = tf.layers.dense(l1, 1024 , tf.nn.relu6, name = "hidden_layer2")
+                out = tf.layers.dense(l2, 1, name="value")
 
                 self.value = out
                 self.parameters = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope = "Critic/Net")
