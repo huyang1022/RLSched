@@ -9,8 +9,9 @@ class Actor(object):
         self.sess =sess
         self.pa = pa
         m_num = pa.mac_train_num * pa.res_num * pa.mac_max_slot * pa.job_max_len
-        j_num = pa.job_train_num * pa.res_num * pa.job_max_slot * pa.job_max_len
-        d_num = pa.job_train_num * pa.dag_max_depth * pa.job_max_len
+        # j_num = pa.job_train_num * pa.res_num * pa.job_max_slot * pa.job_max_len
+        j_num = pa.job_train_num * (pa.res_num * pa.job_max_slot + pa.job_max_len)
+        d_num = pa.job_train_num * pa.dag_max_depth * pa.job_max_len * 2
         self.s_dim = m_num + j_num + d_num
         self.a_dim =pa.mac_train_num * pa.job_train_num + 1
         self.l_r = pa.a_learn_rate
@@ -33,9 +34,9 @@ class Actor(object):
                 # f_j = tf.reshape(c_j, [-1, pa.job_train_num * pa.res_num * 32])
                 # f_d = tf.reshape(c_d, [-1, pa.job_train_num * 32])
                 # l_con = tf.concat([f_m, f_j, f_d], 1)
-                l1 = tf.layers.dense(self.state, 1024, tf.nn.relu6, name = "hidden_layer1")
-                l2 = tf.layers.dense(l1, 1024 , tf.nn.relu6, name = "hidden_layer2")
-                out = tf.layers.dense(l2, self.a_dim, tf.nn.softmax, name = "act_prob")
+                l1 = tf.layers.dense(self.state, 256, tf.nn.relu6, name = "hidden_layer1")
+                # l2 = tf.layers.dense(l1, 256, tf.nn.relu6, name = "hidden_layer2")
+                out = tf.layers.dense(l1, self.a_dim, tf.nn.softmax, name = "act_prob")
 
                 self.act_prob = out
                 self.parameters = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope = "Actor/Net")
@@ -137,8 +138,9 @@ class Critic(object):
         self.sess = sess
         self.pa = pa
         m_num = pa.mac_train_num * pa.res_num * pa.mac_max_slot * pa.job_max_len
-        j_num = pa.job_train_num * pa.res_num * pa.job_max_slot * pa.job_max_len
-        d_num = pa.job_train_num * pa.dag_max_depth * pa.job_max_len
+        # j_num = pa.job_train_num * pa.res_num * pa.job_max_slot * pa.job_max_len
+        j_num = pa.job_train_num * (pa.res_num * pa.job_max_slot + pa.job_max_len)
+        d_num = pa.job_train_num * pa.dag_max_depth * pa.job_max_len * 2
         self.s_dim = m_num + j_num + d_num
         self.a_dim =pa.mac_train_num * pa.job_train_num + 1
         self.l_r = pa.c_learn_rate
@@ -158,9 +160,9 @@ class Critic(object):
                 # f_j = tf.reshape(c_j, [-1, pa.job_train_num * pa.res_num * 32])
                 # f_d = tf.reshape(c_d, [-1, pa.job_train_num * 32])
                 # l_con = tf.concat([f_m, f_j, f_d], 1)
-                l1 = tf.layers.dense(self.state, 1024, tf.nn.relu6, name = "hidden_layer1")
-                l2 = tf.layers.dense(l1, 1024 , tf.nn.relu6, name = "hidden_layer2")
-                out = tf.layers.dense(l2, 1, name="value")
+                l1 = tf.layers.dense(self.state, 256, tf.nn.relu6, name = "hidden_layer1")
+                # l2 = tf.layers.dense(l1, 256, tf.nn.relu6, name = "hidden_layer2")
+                out = tf.layers.dense(l1, 1, name="value")
 
                 self.value = out
                 self.parameters = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope = "Critic/Net")

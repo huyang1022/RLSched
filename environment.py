@@ -110,20 +110,28 @@ class Environment(object):
         mac_n = min(self.pa.mac_train_num, self.mac_count)
         job_n = min(self.pa.job_train_num, self.job_count)
         m_obs = np.zeros([self.pa.mac_train_num, self.pa.res_num, self.pa.mac_max_slot, self.pa.job_max_len])
-        j_obs = np.zeros([self.pa.job_train_num, self.pa.res_num, self.pa.job_max_slot, self.pa.job_max_len])
-        d_obs = np.zeros([self.pa.job_train_num, self.pa.dag_max_depth, self.pa.job_max_len])
+        # j_obs = np.zeros([self.pa.job_train_num, self.pa.res_num, self.pa.job_max_slot, self.pa.job_max_len])
+        j_obs = np.zeros([self.pa.job_train_num, self.pa.res_num * self.pa.job_max_slot + self.pa.job_max_len])
+        d_obs = np.zeros([self.pa.job_train_num, 2, self.pa.dag_max_depth * self.pa.job_max_len])
 
         for i in xrange(mac_n):
             for j in xrange(self.pa.res_num):
                 for k in xrange(self.pa.mac_max_slot):
                     m_obs[i][j][k][:int(self.macs[i].state[j][k])] = 1
 
+        # for i in xrange(job_n):
+        #     for j in xrange(self.pa.res_num):
+        #         for k in xrange(self.pa.job_max_slot):
+        #             j_obs[i][j][k][:int(self.jobs[i].state[j][k])] = 1
+
+
         for i in xrange(job_n):
             for j in xrange(self.pa.res_num):
-                for k in xrange(self.pa.job_max_slot):
-                    j_obs[i][j][k][:int(self.jobs[i].state[j][k])] = 1
+                j_obs[i][j * self.pa.job_max_slot: j * self.pa.job_max_slot + self.jobs[i].res_vec[j]] = 1
+            j_obs[i][self.pa.res_num * self.pa.job_max_slot: self.pa.res_num * self.pa.job_max_slot + self.jobs[i].duration] = 1
 
-            d_obs[i] = self.jobs[i].c_state
+            d_obs[i][0] = self.jobs[i].c_state.flatten()
+            d_obs[i][1][:self.jobs[i].c_len] = 1
             # d_obs[i][:self.jobs[i].depth] = 1
             # d_obs[i][self.pa.dag_max_depth:self.pa.dag_max_depth + self.jobs[i].c_len] = 1
 
