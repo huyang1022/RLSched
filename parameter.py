@@ -6,7 +6,7 @@ class Parameter(object):
         self.exp_len = 500                             # maximum duration of one experiment
         self.su_epochs = 0                           # supervised training epochs
 
-        self.worker_num = 16                            # number of agents
+        self.worker_num = 20                            # number of agents
         self.batch_len = 50                            # maximum duration of one batch
         self.batch_num = self.worker_num * 1                  # number batches
 
