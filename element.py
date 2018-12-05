@@ -59,6 +59,7 @@ class Job(object):
         self.c_next = -1
         self.c_len = 0
         self.c_state = None
+        self.c_res_state = None
 
         assert len(res_vec) == res_num
         for i in xrange(res_num):

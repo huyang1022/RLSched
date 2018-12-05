@@ -82,12 +82,17 @@ class JobGenerator(object):
             for k in xrange(self.batch_num):
                 for i in xrange(pa.job_num):
                     self.job_sequence[k][i].c_state = np.zeros([pa.dag_max_depth, pa.job_max_len])
+                    self.job_sequence[k][i].c_res_state = np.zeros([pa.res_num, pa.dag_max_depth, pa.job_max_slot])
                     job = self.job_sequence[k][i]
-                    self.job_sequence[k][i].c_state[job.depth, :job.duration] = 1
+                    self.job_sequence[k][i].c_state[job.depth][:job.duration] = 1
+                    for ii in xrange(pa.res_num):
+                        self.job_sequence[k][i].c_res_state[ii][job.depth][:job.res_vec[ii]] = 1
                     j = job.c_next
                     while j != -1:
                         job = self.job_sequence[k][j]
-                        self.job_sequence[k][i].c_state[job.depth, :job.duration] = 1
+                        self.job_sequence[k][i].c_state[job.depth][ :job.duration] = 1
+                        for ii in xrange(pa.res_num):
+                            self.job_sequence[k][i].c_res_state[ii][job.depth][:job.res_vec[ii]] = 1
                         j = job.c_next
 
 
