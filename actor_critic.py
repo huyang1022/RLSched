@@ -10,10 +10,12 @@ class Actor(object):
         self.pa = pa
         m_num = pa.mac_train_num * pa.res_num * pa.mac_max_slot * pa.job_max_len
         # j_num = pa.job_train_num * pa.res_num * pa.job_max_slot * pa.job_max_len
-        j_num = pa.job_train_num * pa.res_num * pa.dag_max_depth * pa.job_max_slot
+        r_num = pa.job_train_num * pa.res_num * pa.job_max_slot
+        d_num = pa.job_train_num * pa.job_max_len
         f_num = pa.job_train_num
-        d_num = pa.job_train_num * pa.dag_max_depth * pa.job_max_len
-        self.s_dim = m_num + j_num + d_num + f_num
+        s_num = pa.job_train_num * pa.dag_max_depth
+        c_num = pa.job_train_num * pa.dag_max_depth * pa.job_max_len
+        self.s_dim = m_num + r_num + d_num + f_num + s_num + c_num
         self.a_dim =pa.mac_train_num * pa.job_train_num + 1
         self.l_r = pa.a_learn_rate
         with tf.variable_scope("Actor"):
@@ -139,10 +141,12 @@ class Critic(object):
         self.pa = pa
         m_num = pa.mac_train_num * pa.res_num * pa.mac_max_slot * pa.job_max_len
         # j_num = pa.job_train_num * pa.res_num * pa.job_max_slot * pa.job_max_len
-        j_num = pa.job_train_num * pa.res_num * pa.dag_max_depth * pa.job_max_slot
+        r_num = pa.job_train_num * pa.res_num * pa.job_max_slot
+        d_num = pa.job_train_num * pa.job_max_len
         f_num = pa.job_train_num
-        d_num = pa.job_train_num * pa.dag_max_depth * pa.job_max_len
-        self.s_dim = m_num + j_num + d_num + f_num
+        s_num = pa.job_train_num * pa.dag_max_depth
+        c_num = pa.job_train_num * pa.dag_max_depth * pa.job_max_len
+        self.s_dim = m_num + r_num + d_num + f_num + s_num + c_num
         self.a_dim =pa.mac_train_num * pa.job_train_num + 1
         self.l_r = pa.c_learn_rate
         with tf.variable_scope("Critic"):

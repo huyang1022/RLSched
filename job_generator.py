@@ -72,7 +72,7 @@ class JobGenerator(object):
                             res_vec.append(np.random.randint(self.other_lower, self.other_upper + 1))
 
                     self.total_len += duration
-                    self.job_sequence[k].append(Job(0, duration, pa.res_num, pa.res_slot, res_vec, i))
+                    self.job_sequence[k].append(Job(0, duration, pa.res_num, pa.job_max_slot, res_vec, i))
 
 
             for k in xrange(self.batch_num):

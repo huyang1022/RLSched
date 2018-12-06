@@ -2,7 +2,7 @@
 class Parameter(object):
     def __init__(self):
 
-        self.exp_epochs = 50000                          # number of training epochs
+        self.exp_epochs = 100000                          # number of training epochs
         self.exp_len = 500                             # maximum duration of one experiment
         self.su_epochs = 0                           # supervised training epochs
 

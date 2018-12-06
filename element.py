@@ -53,7 +53,7 @@ class Job(object):
         self.starting_time = -1
         self.execution_time = -1
         self.status = "Pending"
-        self.state = np.zeros([res_num, res_slot])
+
 
         self.depth = 0
         self.c_next = -1
@@ -62,8 +62,7 @@ class Job(object):
         self.c_res_state = None
 
         assert len(res_vec) == res_num
-        for i in xrange(res_num):
-            self.state[i, :res_vec[i]] = duration
+
 
     @staticmethod
     def reset():
@@ -86,9 +85,9 @@ class Job(object):
     def show(self):
         for i in xrange(self.res_num):
             if i == 0:
-                print "Job ID: ", self.id, "\t", self.state[i]
+                print "Job ID: ", self.id, "\t", self.res_vec[i]
             else:
-                print "\t\t\t", self.state[i]
+                print "\t\t\t", self.res_vec[i]
 
 class Action(object):
     def __init__(self, job_id, mac_id):

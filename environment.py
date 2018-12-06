@@ -87,8 +87,8 @@ class Environment(object):
         job_index = [x.id for x in self.jobs].index(act.job_id)
         mac_index = [x.id for x in self.macs].index(act.mac_id)
         for i in xrange(self.pa.res_num):
-            res_avail = (self.macs[mac_index].state[i] == 0)
-            if res_avail.sum() < self.jobs[job_index].res_vec[i]:
+            res_avail = np.sum(self.macs[mac_index].state[i] == 0)
+            if res_avail < self.jobs[job_index].res_vec[i]:
                 return False
         return True
 
@@ -97,8 +97,7 @@ class Environment(object):
         job_index = [x.id for x in self.jobs].index(act.job_id)
         mac_index = [x.id for x in self.macs].index(act.mac_id)
         for i in xrange(self.pa.res_num):
-            res_avail = (self.macs[mac_index].state[i] == 0)
-            self.macs[mac_index].state[i, res_avail] = self.jobs[job_index].state[i, :res_avail.sum()]
+            self.macs[mac_index].state[i][-self.jobs[job_index].res_vec[i]:] = self.jobs[job_index].duration
 
         self.macs[mac_index].state = np.sort(self.macs[mac_index].state, 1)
         self.macs[mac_index].state = np.flip(self.macs[mac_index].state, 1)
@@ -111,9 +110,11 @@ class Environment(object):
         job_n = min(self.pa.job_train_num, self.job_count)
         m_obs = np.zeros([self.pa.mac_train_num, self.pa.res_num, self.pa.mac_max_slot, self.pa.job_max_len])
         # j_obs = np.zeros([self.pa.job_train_num, self.pa.res_num, self.pa.job_max_slot, self.pa.job_max_len])
-        j_obs = np.zeros([self.pa.job_train_num, self.pa.res_num , self.pa.dag_max_depth, self.pa.job_max_slot])
+        r_obs = np.zeros([self.pa.job_train_num, self.pa.res_num ,self.pa.job_max_slot])
+        d_obs = np.zeros([self.pa.job_train_num, self.pa.job_max_len])
         f_obs = np.zeros([self.pa.job_train_num])
-        d_obs = np.zeros([self.pa.job_train_num, self.pa.dag_max_depth, self.pa.job_max_len])
+        s_obs = np.zeros([self.pa.job_train_num, self.pa.dag_max_depth])
+        c_obs = np.zeros([self.pa.job_train_num, self.pa.dag_max_depth, self.pa.job_max_len])
 
         for i in xrange(mac_n):
             for j in xrange(self.pa.res_num):
@@ -127,14 +128,19 @@ class Environment(object):
 
 
         for i in xrange(job_n):
-            j_obs[i] = self.jobs[i].c_res_state
+            for j in xrange(self.pa.res_num):
+                r_obs[i][j][:self.jobs[i].res_vec[j]] = 1
 
-            d_obs[i] = self.jobs[i].c_state
+            d_obs[i][:self.jobs[i].duration] = 1
 
             if self.check_act(Action(self.jobs[i].id, self.macs[0].id)):
                 f_obs[i] = 1
 
-        return np.concatenate((m_obs.flatten(), j_obs.flatten(), d_obs.flatten(), f_obs.flatten()))
+            s_obs[i][:self.jobs[i].depth] = 1
+            c_obs[i] = self.jobs[i].c_state
+
+        return np.concatenate((m_obs.flatten(), r_obs.flatten(), d_obs.flatten(),
+                               f_obs.flatten(), s_obs.flatten(), c_obs.flatten()))
 
     def reward(self):
         # return -self.job_count * 1.0 / self.pa.job_num
