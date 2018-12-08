@@ -57,7 +57,7 @@ class Parameter(object):
         self.alg_num = 5                                # number of candidate algorithms
         self.a_learn_rate = 0.0001                         # actor learning rate
         self.c_learn_rate = 0.001                         # critic learning rate
-        self.discount_rate = 0.99                         # discount rate
+        self.discount_rate = 0.95                         # discount rate
         self.learn_step = 30                            # steps of update
         self.eps = 1e-10                                 # eps
         self.entropy_rate = 0.01

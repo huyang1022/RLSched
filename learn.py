@@ -49,11 +49,11 @@ def master(pa, net_queues, exp_queues):
                 ep_s.append(buffer_s)
                 ep_a.append(buffer_a)
                 ep_v.append(buffer_v)
-                ep_train_w.append(np.sum(butter_w))
+                ep_train_w.append(butter_w)
 
                 if pa.test_flag:
                     butter_test_w = exp_queues[k + pa.worker_num].get()
-                    ep_test_w.append(np.sum(butter_test_w))
+                    ep_test_w.append(butter_test_w)
 
             # ep_a_gradients, ep_c_gradients =[], []
             for k in xrange(pa.worker_num):
@@ -141,35 +141,31 @@ def worker(pa, net_queue, exp_queue):
             env.reset()
             env.add_cluster()
             env.batch_id = batch_id
-            state = env.obs()
-            buffer_s, buffer_a, buffer_r, buffer_v, butter_w = [], [], [], [], []
+            buffer_s, buffer_a, buffer_r, buffer_v = [], [], [], []
             while True:
-                if i < pa.su_epochs:
-                    act_id = act_generator.get_id(env, i)
-                else:
-                    act_id = actor.predict(state[np.newaxis, :])
-                state_, reward, done, info = env.step_act(act_id)
-
-                buffer_s.append(state)
-                buffer_a.append(act_id)
-                buffer_r.append(reward)
-                butter_w.append(info)
-
-                if done or env.current_time >= pa.exp_len:
-                    if done:
-                        value = 0
-                    else:
-                        value = - pa.job_num
+                if env.check_done() or env.current_time >= pa.exp_len:
+                    value = - env.current_time * 1.0
                     for r in buffer_r[::-1]:
-                        value = r + pa.discount_rate * value
+                        # value = r + pa.discount_rate * value
                         buffer_v.append(value)
-                    buffer_v.reverse()
+                        value += 1
 
+                    # buffer_v.reverse()
                     buffer_s, buffer_a, buffer_v = np.vstack(buffer_s), np.vstack(buffer_a), np.vstack(buffer_v)
-                    exp_queue.put([buffer_s, buffer_a, buffer_v, butter_w])
+                    exp_queue.put([buffer_s, buffer_a, buffer_v, env.current_time])
                     break
-                state = state_
-
+                elif env.check_learning():
+                    state = env.obs()
+                    if i < pa.su_epochs:
+                        act_id = act_generator.get_id(env, i)
+                    else:
+                        act_id = actor.predict(state[np.newaxis, :])
+                    state_, reward, done = env.step_act(act_id)
+                    buffer_s.append(state)
+                    buffer_a.append(act_id)
+                    buffer_r.append(reward)
+                else:
+                    env.step()
 
 
 def tester(pa, net_queue, exp_queue):
@@ -190,20 +186,20 @@ def tester(pa, net_queue, exp_queue):
             env.reset()
             env.add_cluster()
             env.batch_id = batch_id
-            state = env.obs()
-            butter_w = []
             while True:
-                if i < pa.su_epochs:
-                    act_id = act_generator.get_id(env, i)
-                else:
-                    act_id = actor.predict(state[np.newaxis, :])
-                state_, reward, done, info = env.step_act(act_id)
-                butter_w.append(info)
-
-                if done or env.current_time >= pa.exp_len:
-                    exp_queue.put(butter_w)
+                if env.check_done() or env.current_time >= pa.exp_len:
+                    exp_queue.put(env.current_time)
                     break
-                state = state_
+                elif env.check_learning():
+                    state = env.obs()
+                    if i < pa.su_epochs:
+                        act_id = act_generator.get_id(env, i)
+                    else:
+                        act_id = actor.predict(state[np.newaxis, :])
+                    env.step_act(act_id)
+                else:
+                    env.step()
+
 
 def main():
     if not os.path.exists(MODEL_DIR):
