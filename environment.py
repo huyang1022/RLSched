@@ -144,17 +144,15 @@ class Environment(object):
         #         for k in xrange(self.pa.job_max_slot):
         #             j_obs[i][j][k][:int(self.jobs[i].state[j][k])] = 1
 
-        ii = 0
         for i in xrange(job_n):
             if self.check_act(Action(self.jobs[i].id, self.macs[0].id)):
                 for j in xrange(self.pa.res_num):
-                    r_obs[ii][j][:self.jobs[i].res_vec[j]] = 1
+                    r_obs[i][j][:self.jobs[i].res_vec[j]] = 1
 
-                d_obs[ii][:self.jobs[i].duration] = 1
+                d_obs[i][:self.jobs[i].duration] = 1
 
-                s_obs[ii][:self.jobs[i].depth] = 1
-                c_obs[ii] = self.jobs[i].c_state
-                ii += 1
+                s_obs[i][:self.jobs[i].depth] = 1
+                c_obs[i] = self.jobs[i].c_state
 
         f_obs[:len(self.scheduled_ids)] = 1
 
@@ -164,7 +162,7 @@ class Environment(object):
     def reward(self):
         # return -self.job_count * 1.0 / self.pa.job_num
         # return self.current_time * -1.0 / self.pa.batch_len
-        return -1.0
+        return 0.0
     def step(self): #act = [job_x, mac_y]  allocate job x to machine y
         # type: (Environment) -> None
         self.current_time += 1
@@ -205,9 +203,8 @@ class Environment(object):
         else:
             self.step()
             ret_state = self.obs()
-            ret_reward = self.reward()
             ret_done = self.check_done()
-
+            ret_reward = self.reward()
 
         return ret_state, ret_reward, ret_done
 
