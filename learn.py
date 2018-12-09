@@ -141,31 +141,35 @@ def worker(pa, net_queue, exp_queue):
             env.reset()
             env.add_cluster()
             env.batch_id = batch_id
+            env.step()
+            state = env.obs()
             buffer_s, buffer_a, buffer_r, buffer_v = [], [], [], []
             while True:
-                if env.check_done() or env.current_time >= pa.exp_len:
-                    value = - env.current_time * 1.0
-                    for r in buffer_r[::-1]:
-                        # value = r + pa.discount_rate * value
-                        buffer_v.append(value)
-                        value += 1
+                if i < pa.su_epochs:
+                    act_id = act_generator.get_id(env, i)
+                else:
+                    act_id = actor.predict(state[np.newaxis, :])
+                state_, reward, done = env.step_act(act_id)
+                buffer_s.append(state)
+                buffer_a.append(act_id)
+                buffer_r.append(reward)
 
-                    # buffer_v.reverse()
+                if done or env.current_time >= pa.exp_len:
+                    if done:
+                        value = 0
+                    else:
+                        value = - pa.job_num
+
+                    for r in buffer_r[::-1]:
+                        value = r + pa.discount_rate * value
+                        buffer_v.append(value)
+                    buffer_v.reverse()
+
                     buffer_s, buffer_a, buffer_v = np.vstack(buffer_s), np.vstack(buffer_a), np.vstack(buffer_v)
                     exp_queue.put([buffer_s, buffer_a, buffer_v, env.current_time])
                     break
-                elif env.check_learning():
-                    state = env.obs()
-                    if i < pa.su_epochs:
-                        act_id = act_generator.get_id(env, i)
-                    else:
-                        act_id = actor.predict(state[np.newaxis, :])
-                    state_, reward, done = env.step_act(act_id)
-                    buffer_s.append(state)
-                    buffer_a.append(act_id)
-                    buffer_r.append(reward)
-                else:
-                    env.step()
+
+                state = state_
 
 
 def tester(pa, net_queue, exp_queue):
@@ -186,19 +190,19 @@ def tester(pa, net_queue, exp_queue):
             env.reset()
             env.add_cluster()
             env.batch_id = batch_id
+            env.step()
+            state = env.obs()
             while True:
-                if env.check_done() or env.current_time >= pa.exp_len:
+                if i < pa.su_epochs:
+                    act_id = act_generator.get_id(env, i)
+                else:
+                    act_id = actor.predict(state[np.newaxis, :])
+                state_, reward, done = env.step_act(act_id)
+
+                if done or env.current_time >= pa.exp_len:
                     exp_queue.put(env.current_time)
                     break
-                elif env.check_learning():
-                    state = env.obs()
-                    if i < pa.su_epochs:
-                        act_id = act_generator.get_id(env, i)
-                    else:
-                        act_id = actor.predict(state[np.newaxis, :])
-                    env.step_act(act_id)
-                else:
-                    env.step()
+                state = state_
 
 
 def main():

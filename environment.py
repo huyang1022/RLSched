@@ -164,7 +164,7 @@ class Environment(object):
     def reward(self):
         # return -self.job_count * 1.0 / self.pa.job_num
         # return self.current_time * -1.0 / self.pa.batch_len
-        return 0.0
+        return -1.0
     def step(self): #act = [job_x, mac_y]  allocate job x to machine y
         # type: (Environment) -> None
         self.current_time += 1
@@ -205,8 +205,9 @@ class Environment(object):
         else:
             self.step()
             ret_state = self.obs()
-            ret_done = self.check_done()
             ret_reward = self.reward()
+            ret_done = self.check_done()
+
 
         return ret_state, ret_reward, ret_done
 
