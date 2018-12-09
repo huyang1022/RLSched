@@ -144,13 +144,13 @@ def worker(pa, net_queue, exp_queue):
             buffer_s, buffer_a, buffer_r, buffer_v = [], [], [], []
             while True:
                 if env.check_done() or env.current_time >= pa.exp_len:
-                    value = - env.current_time * 1.0
+                    value = (pa.job_num * 10.0 / env.current_time) ** 2
                     for r in buffer_r[::-1]:
-                        # value = r + pa.discount_rate * value
+                        value = pa.discount_rate * value
                         buffer_v.append(value)
-                        value += 1
+                        # value += 1
 
-                    # buffer_v.reverse()
+                    buffer_v.reverse()
                     buffer_s, buffer_a, buffer_v = np.vstack(buffer_s), np.vstack(buffer_a), np.vstack(buffer_v)
                     exp_queue.put([buffer_s, buffer_a, buffer_v, env.current_time])
                     break
