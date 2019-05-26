@@ -6,16 +6,16 @@ class Parameter(object):
         self.exp_len = 500                             # maximum duration of one experiment
         self.su_epochs = 0                           # supervised training epochs
 
-        self.worker_num = 20                            # number of agents
+        self.worker_num = 10                            # number of agents
         self.batch_len = 50                            # maximum duration of one batch
         self.batch_num = self.worker_num * 1                  # number batches
 
         self.res_num = 2                                # number of resources in the cluster
-        self.res_slot = 24                            # maximum number of resource slots
+        self.res_slot = 8                            # maximum number of resource slots
 
-        self.mac_num = 1                               # number of machines in the cluster
-        self.mac_train_num = 1                         # number of trained machines
-        self.mac_max_slot = 24                         # maximum number of resource slots of machine
+        self.mac_num = 5                               # number of machines in the cluster
+        self.mac_train_num = 5                         # number of trained machines
+        self.mac_max_slot = 8                         # maximum number of resource slots of machine
 
 
         self.job_num = 50                               # number of jobs in one batch
@@ -27,7 +27,7 @@ class Parameter(object):
         self.job_seed = 7                             # random seed for job generating
 
         self.dag_num = 9                                # number of dag
-        self.dag_id = 0                                # id of dag
+        self.dag_id = 3                                # id of dag
         self.dag_dict = {                               # name of dag file and number of jobs
             0: ["Epigenomics_50", 50],
             1: ["CyberShake_50", 50],

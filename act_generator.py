@@ -14,6 +14,9 @@ def run(env, act_id):
         return act
     else:
         return None
+def new_id(env, job_idx, mac_idx):
+    MOD = env.pa.mac_train_num
+    return MOD * job_idx + mac_idx
 
 def get_id(env, alg_id):
     MOD = env.pa.mac_train_num

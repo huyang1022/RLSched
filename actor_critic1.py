@@ -3,19 +3,19 @@ import numpy as np
 from parameter import Parameter
 
 
-class Actor(object):
+class Actor1(object):
     def __init__(self, sess, pa):
         # type: (tf.Session, Parameter) -> None
         self.sess =sess
         self.pa = pa
         m_num = pa.mac_train_num * pa.res_num
-        j_num = pa.job_train_num * pa.res_num
-        d_num = pa.job_train_num
-        c_num = pa.job_train_num
+        j_num = pa.res_num
+        d_num = 1
+        c_num = 1
         self.s_dim = m_num + j_num + d_num + c_num
-        self.a_dim = pa.job_train_num + 1
+        self.a_dim = pa.mac_train_num + 1
         self.l_r = pa.a_learn_rate
-        with tf.variable_scope("Actor"):
+        with tf.variable_scope("Actor1"):
             with tf.variable_scope("Input"):
                 self.state = tf.placeholder(tf.float32, [None, self.s_dim], name = "state")
                 self.act = tf.placeholder(tf.int32, [None, 1], name = "act")
@@ -37,7 +37,7 @@ class Actor(object):
                 out = tf.layers.dense(l1, self.a_dim, tf.nn.softmax, name = "act_prob")
 
                 self.act_prob = out
-                self.parameters = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope = "Actor/Net")
+                self.parameters = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope = "Actor1/Net")
 
             with tf.variable_scope("Loss"):
                 # log_prob = tf.multiply(tf.log(self.act_prob + self.pa.eps), tf.squeeze(tf.one_hot(self.act, self.a_dim)))
@@ -136,19 +136,19 @@ class Actor(object):
         ret_act = np.random.choice(np.arange(self.a_dim), p=ret_prob.ravel())
         return ret_act
 
-class Critic(object):
+class Critic1(object):
     def __init__(self, sess, pa):
         # type: (tf.Session, Parameter) -> None
         self.sess = sess
         self.pa = pa
         m_num = pa.mac_train_num * pa.res_num
-        j_num = pa.job_train_num * pa.res_num
-        d_num = pa.job_train_num
-        c_num = pa.job_train_num
+        j_num = pa.res_num
+        d_num = 1
+        c_num = 1
         self.s_dim = m_num + j_num + d_num + c_num
-        self.a_dim = pa.job_train_num + 1
+        self.a_dim = pa.mac_train_num + 1
         self.l_r = pa.c_learn_rate
-        with tf.variable_scope("Critic"):
+        with tf.variable_scope("Critic1"):
             with tf.variable_scope("Input"):
                 self.state = tf.placeholder(tf.float32, [None, self.s_dim], name = "state")
                 self.value_target = tf.placeholder(tf.float32, [None, 1], name = "value")
@@ -169,7 +169,7 @@ class Critic(object):
                 out = tf.layers.dense(l1, 1, name="value")
 
                 self.value = out
-                self.parameters = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope = "Critic/Net")
+                self.parameters = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope = "Critic1/Net")
 
             with tf.variable_scope("Loss"):
                 self.td_error = tf.subtract(self.value_target, self.value)

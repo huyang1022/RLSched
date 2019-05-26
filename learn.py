@@ -6,6 +6,7 @@ import act_generator
 import tensorflow as tf
 import numpy as np
 from actor_critic import Actor, Critic
+from actor_critic1 import Actor1, Critic1
 import os
 # import plot
 import multiprocessing as mp
@@ -19,6 +20,8 @@ def master(pa, net_queues, exp_queues):
     sess = tf.Session()
     actor = Actor(sess, pa)
     critic = Critic(sess, pa)
+    actor1 = Actor1(sess, pa)
+    critic1 = Critic1(sess, pa)
     sess.run(tf.global_variables_initializer())
     s_time = time.time()
 
@@ -32,38 +35,48 @@ def master(pa, net_queues, exp_queues):
         print "================", "Start EP", i, "================"
         ep_train_w, ep_test_w = [], []
         ep_td, ep_c_loss, ep_a_loss, ep_a_entropy = [], [], [], []
+        ep_td1, ep_c_loss1, ep_a_loss1, ep_a_entropy1 = [], [], [], []
         for j in xrange(pa.batch_num / pa.worker_num):
-            ep_s, ep_a, ep_v= [], [], []
+            ep_s, ep_a, ep_s1, ep_a1, ep_v= [], [], [], [], []
             a_parameters = actor.get_parameters()
-            c_parameters = critic.get_parameters()
-
+            # c_parameters = critic.get_parameters()
+            a1_parameters = actor1.get_parameters()
+            # c1_parameters = critic1.get_parameters()
             for k in xrange(pa.worker_num):
                 train_id = j * pa.worker_num + k
                 test_id = train_id + pa.batch_num
-                net_queues[k].put([train_id, a_parameters, c_parameters])
+                net_queues[k].put([train_id, a_parameters, a1_parameters])
                 if pa.test_flag:
-                    net_queues[k + pa.worker_num].put([test_id, a_parameters, c_parameters])
+                    net_queues[k + pa.worker_num].put([test_id, a_parameters, a1_parameters])
 
             for k in xrange(pa.worker_num):
-                buffer_s, buffer_a, buffer_v, butter_w = exp_queues[k].get()
+                buffer_s, buffer_a, buffer_s1, buffer_a1, buffer_v, butter_w = exp_queues[k].get()
                 ep_s.append(buffer_s)
                 ep_a.append(buffer_a)
+                ep_s1.append(buffer_s1)
+                ep_a1.append(buffer_a1)
                 ep_v.append(buffer_v)
                 ep_train_w.append(butter_w)
-
                 if pa.test_flag:
                     butter_test_w = exp_queues[k + pa.worker_num].get()
                     ep_test_w.append(butter_test_w)
 
             # ep_a_gradients, ep_c_gradients =[], []
             for k in xrange(pa.worker_num):
-                td_error, c_loss = critic.learn(ep_s[k], ep_v[k])
+                td_error, c_loss, td_error1, c_loss1 =[0], 0, 0, 0
+                # td_error, c_loss = critic.learn(ep_s[k], ep_v[k])
+                # td_error1, c_loss1 = critic1.learn(ep_s1[k], ep_v[k])
                 # td_error, c_loss, c_gradients = critic.get_gradients(ep_s[j], ep_v[j])
                 if i < pa.su_epochs:
-                    a_entropy, a_loss = actor.s_learn(ep_s[k], ep_a[k])
+                    a_entropy, a_loss, a_entropy1, a_loss1 = 0, 0, 0 ,0
+                    # a_entropy, a_loss = actor.s_learn(ep_s[k], ep_a[k])
+                    # a_entropy1, a_loss1 = actor1.s_learn(ep_s1[k], ep_a1[k])
                     # a_entropy, a_loss, a_gradients = actor.get_s_gradients(ep_s[j], ep_a[j])
                 else:
+                    td_error, c_loss = critic.learn(ep_s[k], ep_v[k])
+                    td_error1, c_loss1 = critic1.learn(ep_s1[k], ep_v[k])
                     a_entropy, a_loss = actor.learn(ep_s[k], ep_a[k], td_error)
+                    a_entropy1, a_loss1 = actor1.learn(ep_s1[k], ep_a1[k], td_error1)
                     # a_entropy, a_loss, a_gradients = actor.get_gradients(ep_s[j], ep_a[j], td_error)
                 # ep_a_gradients.append(a_gradients)
                 # ep_c_gradients.append(c_gradients)
@@ -71,6 +84,11 @@ def master(pa, net_queues, exp_queues):
                 ep_c_loss.append(c_loss)
                 ep_a_loss.append(a_loss)
                 ep_a_entropy.append(a_entropy)
+
+                ep_td1.append(td_error1)
+                ep_c_loss1.append(c_loss1)
+                ep_a_loss1.append(a_loss1)
+                ep_a_entropy1.append(a_entropy1)
 
         # for j in xrange(pa.batch_num):
         #     actor.update_parameters(ep_a_gradients[j])
@@ -124,8 +142,7 @@ def master(pa, net_queues, exp_queues):
 def worker(pa, net_queue, exp_queue):
     sess = tf.Session()
     actor = Actor(sess, pa)
-    critic = Critic(sess, pa)
-
+    actor1 = Actor1(sess, pa)
     env = Environment(pa)
     mac_gen = MacGenerator(pa)
     job_gen = JobGenerator(pa)
@@ -135,13 +152,15 @@ def worker(pa, net_queue, exp_queue):
 
     for i in xrange(pa.exp_epochs):
         for j in xrange(pa.batch_num / pa.worker_num):
-            batch_id, a_parameters, c_parameters = net_queue.get()
+            batch_id, a_parameters, a1_parameters = net_queue.get()
             actor.set_parameters(a_parameters)
-            critic.set_parameters(c_parameters)
+            actor1.set_parameters(a1_parameters)
             env.reset()
             env.add_cluster()
             env.batch_id = batch_id
             buffer_s, buffer_a, buffer_r, buffer_v = [], [], [], []
+            buffer_s1, buffer_a1 = [], []
+
             while True:
                 if env.check_done() or env.current_time >= pa.exp_len:
                     value = (pa.job_num * 10.0 / env.current_time) ** 2
@@ -149,21 +168,30 @@ def worker(pa, net_queue, exp_queue):
                         value = pa.discount_rate * value
                         buffer_v.append(value)
                         # value += 1
-
-                    buffer_v.reverse()
-                    buffer_s, buffer_a, buffer_v = np.vstack(buffer_s), np.vstack(buffer_a), np.vstack(buffer_v)
-                    exp_queue.put([buffer_s, buffer_a, buffer_v, env.current_time])
+                    if i >= pa.su_epochs:
+                        buffer_v.reverse()
+                        buffer_s, buffer_a,  buffer_v = np.vstack(buffer_s), np.vstack(buffer_a), np.vstack(buffer_v)
+                        buffer_s1, buffer_a1 = np.vstack(buffer_s1), np.vstack(buffer_a1)
+                    exp_queue.put([buffer_s, buffer_a, buffer_s1, buffer_a1, buffer_v, env.current_time])
                     break
                 elif env.check_learning():
-                    state = env.obs()
                     if i < pa.su_epochs:
                         act_id = act_generator.get_id(env, i)
+                        state_, reward, done = env.step_act(act_id)
                     else:
-                        act_id = actor.predict(state[np.newaxis, :])
-                    state_, reward, done = env.step_act(act_id)
-                    buffer_s.append(state)
-                    buffer_a.append(act_id)
-                    buffer_r.append(reward)
+                        state = env.obs_job()
+                        job_idx = actor.predict(state[np.newaxis, :])
+                        state1 = env.obs_mac(job_idx)
+                        mac_idx = actor1.predict(state1[np.newaxis, :])
+                        act_id = act_generator.new_id(env,job_idx,mac_idx)
+                        # print act_id
+                        # print job_idx, mac_idx, act_id
+                        state_, reward, done = env.step_act(act_id)
+                        buffer_s.append(state)
+                        buffer_a.append(job_idx)
+                        buffer_s1.append(state1)
+                        buffer_a1.append(mac_idx)
+                        buffer_r.append(reward)
                 else:
                     env.step()
 
@@ -172,6 +200,7 @@ def tester(pa, net_queue, exp_queue):
     sess = tf.Session()
     actor = Actor(sess, pa)
     critic = Critic(sess, pa)
+
 
     env = Environment(pa)
     mac_gen = MacGenerator(pa)

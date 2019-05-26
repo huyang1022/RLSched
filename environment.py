@@ -159,6 +159,47 @@ class Environment(object):
         return np.concatenate((m_obs.flatten(), r_obs.flatten(), d_obs.flatten(),
                                s_obs.flatten(), c_obs.flatten(), f_obs.flatten()))
 
+    def obs_job(self):
+        mac_n = min(self.pa.mac_train_num, self.mac_count)
+        job_n = min(self.pa.job_train_num, self.job_count)
+        m_obs = np.zeros([self.pa.mac_train_num, self.pa.res_num])
+        j_obs = np.zeros([self.pa.job_train_num, self.pa.res_num])
+        d_obs = np.zeros([self.pa.job_train_num])
+        c_obs = np.zeros([self.pa.job_train_num])
+
+        for i in xrange(mac_n):
+            for j in xrange(self.pa.res_num):
+                m_obs[i][j] = np.sum(self.macs[i].state[j] == 0)
+
+        for i in xrange(job_n):
+            for j in xrange(self.pa.res_num):
+                j_obs[i][j] = self.jobs[i].res_vec[j]
+            d_obs[i] = self.jobs[i].duration
+            c_obs[i] = self.jobs[i].c_len
+
+        # print m_obs, j_obs, d_obs, c_obs
+        return np.concatenate((m_obs.flatten(), j_obs.flatten(), d_obs.flatten(),c_obs.flatten()))
+
+    def obs_mac(self, job_idx):
+        mac_n = min(self.pa.mac_train_num, self.mac_count)
+        job_n = min(self.pa.job_train_num, self.job_count)
+        m_obs = np.zeros([self.pa.mac_train_num, self.pa.res_num])
+        j_obs = np.zeros([self.pa.res_num])
+        d_obs = np.zeros([1])
+        c_obs = np.zeros([1])
+
+        for i in xrange(mac_n):
+            for j in xrange(self.pa.res_num):
+                m_obs[i][j] = np.sum(self.macs[i].state[j] == 0)
+
+        if job_idx < job_n:
+            for j in xrange(self.pa.res_num):
+                    j_obs[j] = self.jobs[job_idx].res_vec[j]
+            d_obs[0] = self.jobs[job_idx].duration
+            c_obs[0] = self.jobs[job_idx].c_len
+
+        return np.concatenate((m_obs.flatten(), j_obs.flatten(), d_obs.flatten(),c_obs.flatten()))
+
     def reward(self):
         # return -self.job_count * 1.0 / self.pa.job_num
         # return self.current_time * -1.0 / self.pa.batch_len
